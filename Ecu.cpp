@@ -1,9 +1,8 @@
-# include "Ecu.h"
+# include "Ecu.hpp"
 #include <iostream>
 
-Ecu ::Ecu(const std::string& name, const std::string& id) 
-    : ECUName(name), ECUID(id) {
-        Ecu::ECUName = name;
+Ecu ::Ecu( const std::string& id) 
+    : ECUID(id) {
         Ecu::ECUID = id;
 }
 
