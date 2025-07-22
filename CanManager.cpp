@@ -24,6 +24,10 @@ void CanManager::send(const std::string &frame){
     auto Data_size = encodedData.size();
     FrameCanTP frameCanTP;
     BusManager busManager;
+    if (!busManager.init()) {
+        std::cerr << "Failed to initialize BusManager." << std::endl;
+        return;
+    }
     if (Data_size <= 7){
         std::vector<uint8_t>SingleFame=frameCanTP.CreateSingleFrame(encodedData,Data_size);
         FrameCAN canFrame(0, SingleFame);
@@ -62,6 +66,10 @@ void CanManager::send(const std::string &frame){
 
 std::string CanManager::receive() {
     BusManager bus;
+    if (!bus.init()) {
+        std::cerr << "Failed to initialize BusManager." << std::endl;
+        return "";
+    }
     FrameCanTP frameCanTP;
     std::vector<uint8_t> Buffer;
     uint16_t expectedSize = 0;
