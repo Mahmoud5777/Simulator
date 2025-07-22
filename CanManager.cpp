@@ -17,6 +17,9 @@ std::string CanManager::decoder(const std::vector<uint8_t>& data) {
 
 void CanManager::send(const std::string& frame) {
     std::vector<uint8_t> encodedData = encoder(frame);
+    for (auto byte : encodedData) {
+        std::cout << static_cast<int>(byte) << std::endl;
+    }
     size_t dataSize = encodedData.size();
 
     FrameCanTP frameCanTP;
@@ -120,12 +123,15 @@ std::string CanManager::receive() {
             std::this_thread::sleep_for(std::chrono::milliseconds(separationTimeMs));
         }
 
-        if (buffer.size() > expectedSize) {
-            buffer.resize(expectedSize); // couper les octets excédentaires
-        }
+        //if (buffer.size() > expectedSize) {
+          //  buffer.resize(expectedSize); // couper les octets excédentaires
+        //}
 
     } else {
         std::cerr << "Type de trame non supporté ou inattendu: 0x" << std::hex << (int)frameType << std::dec << std::endl;
+    }
+    for (auto byte : buffer) {
+        std::cout << static_cast<int>(byte) << " ";
     }
 
     std::string receivedData = decoder(buffer);
