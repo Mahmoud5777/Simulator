@@ -16,18 +16,14 @@ void SimillatorController::run() {
 
     if (choice == "send") {
         std::cout << "Give your ID" << std::endl;
-        //std::string &id;
-        //std::cin >> id;
-        EcuSender sender("gg");
+        // tu peux récupérer l'ID ici si besoin
+        EcuSender sender(bus);   // passe la référence bus ici
         sender.run();
-
     } else if (choice == "receive") {
         std::cout << "Give your ID" << std::endl;
-        //std::string &id;
-        //std::cin >> id;
-        EcuReceiver receiver("ff");
+        // pareil pour ID si besoin
+        EcuReceiver receiver(bus);  // passe la référence bus ici
         receiver.run();
-
     } else {
         std::cout << "Invalid choice. Please enter 'send' or 'receive'." << std::endl;
     }

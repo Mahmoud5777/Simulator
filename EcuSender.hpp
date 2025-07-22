@@ -1,11 +1,15 @@
-#ifndef ECUSENDER_H
-    #define ECUSENDER_H
-    #include "Ecu.hpp"
+#ifndef ECUSENDER_HPP
+#define ECUSENDER_HPP
 
-    class EcuSender : public Ecu {
-        public:
-            EcuSender(const std::string& id) : Ecu(id) {}
-            void run () override;
-    };
+#include "BusManager.hpp"
+
+class EcuSender {
+public:
+    explicit EcuSender(BusManager& busManager);
+    void run();
+
+private:
+    BusManager& bus;  // référence au BusManager partagé
+};
 
 #endif

@@ -1,11 +1,17 @@
-#ifndef ECURECIEVER_HPP
-#define ECURECIEVER_HPP
-#include "Ecu.hpp"
+// EcuReceiver.hpp
+#ifndef ECURECEIVER_HPP
+#define ECURECEIVER_HPP
 
-class EcuReceiver : public Ecu {
-    public:
-        EcuReceiver(const std::string& id) : Ecu(id) {}
-        void run () override;
+#include <string>
+#include "BusManager.hpp"
+
+class EcuReceiver {
+public:
+    explicit EcuReceiver(BusManager& bus);
+    void run();
+
+private:
+    BusManager& bus;
 };
 
 #endif
