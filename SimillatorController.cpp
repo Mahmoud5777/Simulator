@@ -4,6 +4,10 @@
 #include "EcuSender.hpp"
 #include "EcuReceiver.hpp"
 
+SimillatorController::SimillatorController(BusManager& busManager)
+    : bus(busManager) {
+}
+
 void SimillatorController::run() {
     std::cout << "Simulator is running." << std::endl;
     std::cout << "Would you like to send or receive data? (send/receive): ";

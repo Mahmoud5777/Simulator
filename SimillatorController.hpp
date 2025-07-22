@@ -1,11 +1,15 @@
-#ifndef simillatorcontroller_hpp
-#define simillatorcontroller_hpp
+#ifndef SIMILLATORCONTROLLER_HPP
+#define SIMILLATORCONTROLLER_HPP
+
+#include "BusManager.hpp"
 
 class SimillatorController {
-    public :
-        SimillatorController() = default;
-        ~SimillatorController() = default;
-        void run();
+public:
+    SimillatorController(BusManager& busManager);
+    ~SimillatorController() = default;
+    void run();
+private:
+    BusManager& bus;  // référence au busManager
 };
 
 #endif
