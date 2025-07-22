@@ -12,10 +12,8 @@
 #include <net/if.h>
 #endif
 
-// Constructeur
 BusManager::BusManager() : socket_fd(-1) {}
 
-// Destructeur
 BusManager::~BusManager() {
     closeSocket();
 }
@@ -65,28 +63,14 @@ void BusManager::send(const FrameCAN& trame) {
     }
 
     struct can_frame frame{};
-    
-    // Valeurs statiques utilisées ici :
-    frame.can_id = 0x123;              // ID CAN fixe
-    frame.can_dlc = 8;                 // DLC fixe (8 octets)
-    std::vector<uint8_t> fakeData = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
-
-    std::memcpy(frame.data, fakeData.data(), frame.can_dlc);
+    frame.can_id = trame.getId();    // suppose que FrameCAN a getId()
+    frame.can_dlc = trame.getDLC();  // suppose que FrameCAN a getDLC()
+    std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
 
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
         perror("Erreur d'envoi CAN");
     } else {
-        std::cout << "Trame CAN envoyée (ID: 0x123, 8 octets)\n";
-    }
-#endif
-}
-
-void BusManager::closeSocket() {
-#ifdef __linux__
-    if (socket_fd >= 0) {
-        close(socket_fd);
-        socket_fd = -1;
-        std::cout << "Socket CAN fermée\n";
+        std::cout << "Trame CAN envoyée (ID: 0x" << std::hex << frame.can_id << std::dec << ", " << (int)frame.can_dlc << " octets)\n";
     }
 #endif
 }
@@ -95,7 +79,7 @@ FrameCAN BusManager::receive() {
 #ifdef __linux__
     if (socket_fd < 0) {
         std::cerr << "Socket CAN non initialisée pour réception\n";
-        return FrameCAN();
+        return FrameCAN();  // FrameCAN vide
     }
 
     struct can_frame canFrame{};
@@ -116,5 +100,15 @@ FrameCAN BusManager::receive() {
 #else
     std::cerr << "Réception CAN non supportée sur cette plateforme\n";
     return FrameCAN();
+#endif
+}
+
+void BusManager::closeSocket() {
+#ifdef __linux__
+    if (socket_fd >= 0) {
+        close(socket_fd);
+        socket_fd = -1;
+        std::cout << "Socket CAN fermée\n";
+    }
 #endif
 }
