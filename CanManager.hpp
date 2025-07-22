@@ -8,14 +8,10 @@
         CanManager() = default;
         ~CanManager() = default;
         void send(const std::string & frame);
-        void receive(const std::string & frame);
+        std::string receive();
     private:
         std::vector<uint8_t> encoder(const std::string & data);
         std::string decoder(const std::vector<uint8_t> & data);
-        FrameCAN buildFrame(const std::string & data);
-        std::string extractData(const std::vector<uint8_t> & frame);
-        void sendFrame(const FrameCAN & frame);
-        FrameCAN receiveFrame();
     };
 
 #endif;

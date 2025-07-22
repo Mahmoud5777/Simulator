@@ -6,7 +6,6 @@ class ID{
     public:
     bool isextended ;
     ~ID();
-    };
-
+};
 
 #endif 

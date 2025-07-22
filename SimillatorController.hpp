@@ -6,7 +6,6 @@ class simillatorcontroller {
         simillatorcontroller() = default;
         ~simillatorcontroller() = default;
         void run();
-        void shutdown();
 };
 
 #endif

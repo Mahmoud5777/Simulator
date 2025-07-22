@@ -9,6 +9,6 @@ void EcuReceiver::run() {
     std::cout << "EcuReceiver is running." << std::endl;
     std::string data;
     CanManager CanManger;
-    CanManger.receive(data);
+    data = CanManger.receive();
     std::cout << "Received data: " << data << std::endl;
 }
