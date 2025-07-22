@@ -25,14 +25,12 @@ bool BusManager::init() {
     struct ifreq ifr{};
     struct sockaddr_can addr{};
 
-    // 1. Création du socket CAN
     socket_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (socket_fd < 0) {
         perror("Erreur création socket CAN");
         return false;
     }
 
-    // 2. Récupération de l'index de l'interface "vcan0"
     std::strncpy(ifr.ifr_name, "vcan0", IFNAMSIZ - 1);
     if (ioctl(socket_fd, SIOCGIFINDEX, &ifr) < 0) {
         perror("Erreur ioctl");
@@ -41,11 +39,9 @@ bool BusManager::init() {
         return false;
     }
 
-    // 3. Préparation de l'adresse CAN
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
 
-    // 4. Liaison du socket à l'interface CAN
     if (bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("Erreur bind");
         close(socket_fd);
@@ -69,12 +65,18 @@ void BusManager::send(const FrameCAN& trame) {
     }
 
     struct can_frame frame{};
-    frame.can_id = trame.getId();
-    frame.can_dlc = trame.getDLC();
-    std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
+    
+    // Valeurs statiques utilisées ici :
+    frame.can_id = 0x123;              // ID CAN fixe
+    frame.can_dlc = 8;                 // DLC fixe (8 octets)
+    std::vector<uint8_t> fakeData = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
+
+    std::memcpy(frame.data, fakeData.data(), frame.can_dlc);
 
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
         perror("Erreur d'envoi CAN");
+    } else {
+        std::cout << "Trame CAN envoyée (ID: 0x123, 8 octets)\n";
     }
 #endif
 }
