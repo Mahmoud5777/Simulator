@@ -63,8 +63,8 @@ void BusManager::send(const FrameCAN& trame) {
     }
 
     struct can_frame frame{};
-    frame.can_id = trame.getId();    // suppose que FrameCAN a getId()
-    frame.can_dlc = trame.getDLC();  // suppose que FrameCAN a getDLC()
+    frame.can_id = trame.getFrameID();    // suppose que FrameCAN a getId()
+    frame.can_dlc = 8 ;  // suppose que FrameCAN a getDLC()
     std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
 
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
