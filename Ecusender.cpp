@@ -3,7 +3,7 @@
 #include <string>
 #include "CanManager.hpp" 
 
-EcuSender::EcuSender(const std::string& id) : Ecu(id) {}
+
 
 void EcuSender::run() {
     std::cout << "EcuSender is running." << std::endl;

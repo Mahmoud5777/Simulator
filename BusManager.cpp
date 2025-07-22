@@ -1,7 +1,7 @@
 #include "BusManager.hpp"
 #include "FrameCAN.hpp"
-#ifdef __linux__
 #include <iostream>
+#ifdef __linux__
 #include <cstring>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -96,7 +96,7 @@ FrameCAN BusManager::receive() {
                     std::vector<uint8_t>(canFrame.data, canFrame.data + canFrame.can_dlc));
 #else
     std::cerr << "Réception CAN non supportée sur cette plateforme\n";
-    return FrameCAN();
+    return FrameCAN(); // Retourne une FrameCAN vide ou par défaut
 #endif
 }
 

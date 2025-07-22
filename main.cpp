@@ -1,8 +1,8 @@
 # include <iostream>
-
+# include "SimillatorController.hpp"
 int main() {
-    std::cout << "Hello, World!" << std::endl;
-    std::cout << "This is a simple simulator program." << std::endl;
-    // You can add more functionality here as needed.
+    SimillatorController simulator;
+    simulator.run();
+    
     return 0;
 }

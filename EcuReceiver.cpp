@@ -3,7 +3,6 @@
 #include <string>
 #include "CanManager.hpp"
 
-EcuReceiver::EcuReceiver(const std::string& id) : Ecu(id) {}
 
 void EcuReceiver::run() {
     std::cout << "EcuReceiver is running." << std::endl;

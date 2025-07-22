@@ -1,10 +1,10 @@
 #ifndef simillatorcontroller_hpp
 #define simillatorcontroller_hpp
 
-class simillatorcontroller {
+class SimillatorController {
     public :
-        simillatorcontroller() = default;
-        ~simillatorcontroller() = default;
+        SimillatorController() = default;
+        ~SimillatorController() = default;
         void run();
 };
 

@@ -8,8 +8,10 @@ class BusManager {
 public:
     BusManager() = default;
     ~BusManager() = default;
-    void send(const FrameCAN &frame) {}
-    FrameCAN receive() {}
+    bool init();
+    void send(const FrameCAN &frame);
+    FrameCAN receive();
+    void closeSocket();
 };
 
 #endif

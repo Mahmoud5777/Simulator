@@ -14,4 +14,4 @@
         std::string decoder(const std::vector<uint8_t> & data);
     };
 
-#endif;
+#endif

@@ -4,11 +4,11 @@
 #include <string>
 #include <cstdint>
 #include "FrameCanTP.hpp"
+#include "FrameCAN.hpp"
 #include "BusManager.hpp"
 #include <thread>
 
-CanManager::CanManager() {}
-CanManager::~CanManager() {}
+
 
 std::vector<uint8_t> CanManager::encoder(const std::string & data) {
     std::vector<uint8_t> encodedData(data.begin(), data.end());
