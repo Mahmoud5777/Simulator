@@ -1,15 +1,14 @@
 #ifndef ECUSENDER_HPP
-#define ECUSENDER_HPP
+    #define ECUSENDER_HPP
+    #include "BusManager.hpp"
 
-#include "BusManager.hpp"
+    class EcuSender {
+    public:
+        explicit EcuSender(BusManager& busManager); 
+        void run();
 
-class EcuSender {
-public:
-    explicit EcuSender(BusManager& busManager);
-    void run();
-
-private:
-    BusManager& bus;  // référence au BusManager partagé
-};
+    private:
+        BusManager& bus;  // référence au BusManager partagé
+    };
 
 #endif

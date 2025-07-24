@@ -3,6 +3,7 @@
 #include <iostream>
 
 #ifdef __linux__
+#include <cstdlib> 
 #include <cstring>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -17,6 +18,34 @@ BusManager::BusManager() : socket_fd(-1) {}
 BusManager::~BusManager() {
     closeSocket();
 }
+
+bool BusManager::createVCAN() {
+    #ifdef __linux__
+        int ret = 0;
+        ret = system("modprobe vcan");
+        if (ret != 0) {
+            std::cerr << "Erreur modprobe vcan\n";
+            return false;
+        }
+        system("ip link delete vcan0 2>/dev/null");
+        ret = system("ip link add dev vcan0 type vcan");
+        if (ret != 0) {
+            std::cerr << "Erreur création interface vcan0\n";
+            return false;
+        }
+        ret = system("ip link set up vcan0");
+        if (ret != 0) {
+            std::cerr << "Erreur activation interface vcan0\n";
+            return false;
+        }
+        std::cout << "Interface vcan0 créée et activée\n";
+        return true;
+    #else
+        std::cerr << "createVCAN() only supported on Linux." << std::endl;
+        return false;
+    #endif
+}
+
 
 bool BusManager::init() {
 #ifdef __linux__

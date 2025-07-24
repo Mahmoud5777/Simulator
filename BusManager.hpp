@@ -9,6 +9,7 @@ class BusManager {
 public:
     BusManager();
     ~BusManager();
+    bool createVCAN();
     bool init();
     void send(const FrameCAN &frame);
     FrameCAN receive();

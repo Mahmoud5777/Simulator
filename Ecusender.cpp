@@ -12,7 +12,6 @@ void EcuSender::run() {
     std::string data;
     std::cout << "Enter data to send: ";
     std::getline(std::cin >> std::ws, data);  // permet de lire une ligne complète avec espaces
-
     CanManager canManager(bus);  // passe la référence BusManager à CanManager
     canManager.send(data);
 }
