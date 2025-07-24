@@ -3,9 +3,10 @@
     #include <string>
     #include <vector>
     #include "FrameCAN.hpp"
+    #include "BusManager.hpp"
     class CanManager {
     public:
-        explicit CanManager(BusManager &bus) : bus(busManager) {};
+        explicit CanManager(BusManager &bus) :busManager(bus) {};
         ~CanManager() = default;
         void send(const std::string & frame);
         std::string receive();

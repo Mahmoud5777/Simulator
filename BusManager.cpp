@@ -13,8 +13,6 @@
 #include <net/if.h>
 #endif
 
-BusManager::BusManager() : socket_fd(-1) {}
-
 BusManager::~BusManager() {
     closeSocket();
 }

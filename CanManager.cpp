@@ -3,9 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <algorithm>
-
-CanManager::CanManager(BusManager& bus)
-    : busManager(bus) {}
+#include "BusManager.hpp"
 
 std::vector<uint8_t> CanManager::encoder(const std::string& data) {
     return std::vector<uint8_t>(data.begin(), data.end());
