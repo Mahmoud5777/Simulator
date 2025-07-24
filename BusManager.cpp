@@ -13,6 +13,12 @@
 #include <net/if.h>
 #endif
 
+BusManager::BusManager() {
+#ifdef __linux__   
+    socket_fd = -1; // Initialisation du descripteur de socket
+#endif
+}
+
 BusManager::~BusManager() {
     closeSocket();
 }
