@@ -68,34 +68,50 @@ bool BusManager::init() {
 
 void BusManager::send(const FrameCAN& trame) {
 #ifdef __linux__
-    can_frame frame = {};
-    frame.can_id = trame.getFrameID();
-    frame.can_dlc = trame.getData().size();
-    memcpy(frame.data, trame.getData().data(), frame.can_dlc);
-
-    write(socket_fd, &frame, sizeof(frame));
-    
-    // Log de simulation uniquement
-    std::cout << "[SIM] Trame envoyée - ID: 0x" << std::hex << frame.can_id 
-              << " Data: ";
-    for (int i = 0; i < frame.can_dlc; ++i) {
-        std::cout << std::hex << (int)frame.data[i] << " ";
+    if (socket_fd < 0) {
+        std::cerr << "Socket CAN non initialisée\n";
+        return;
     }
-    std::cout << std::dec << std::endl;
+
+    struct can_frame frame{};
+    frame.can_id = trame.getFrameID();    // suppose que FrameCAN a getId()
+    frame.can_dlc = 8 ;  // suppose que FrameCAN a getDLC()
+    std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
+
+    if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
+        perror("Erreur d'envoi CAN");
+    } else {
+        std::cout << "Trame CAN envoyée (ID: 0x" << std::hex << frame.can_id << std::dec << ", " << (int)frame.can_dlc << " octets)\n";
+    }
 #endif
 }
 
 FrameCAN BusManager::receive() {
 #ifdef __linux__
-    can_frame frame;
-    ssize_t nbytes = read(socket_fd, &frame, sizeof(frame));
-    
-    if (nbytes > 0) {
-        std::vector<uint8_t> data(frame.data, frame.data + frame.can_dlc);
-        return FrameCAN(frame.can_id, data);
+    if (socket_fd < 0) {
+        std::cerr << "Socket CAN non initialisée pour réception\n";
+        return FrameCAN();  // FrameCAN vide
     }
+
+    struct can_frame canFrame{};
+    ssize_t nbytes = read(socket_fd, &canFrame, sizeof(canFrame));
+
+    if (nbytes < 0) {
+        perror("Erreur lecture CAN");
+        return FrameCAN();
+    }
+
+    if (nbytes < sizeof(canFrame)) {
+        std::cerr << "Trame CAN incomplète reçue\n";
+        return FrameCAN();
+    }
+
+    return FrameCAN(canFrame.can_id,
+                    std::vector<uint8_t>(canFrame.data, canFrame.data + canFrame.can_dlc));
+#else
+    std::cerr << "Réception CAN non supportée sur cette plateforme\n";
+    return FrameCAN();
 #endif
-    return FrameCAN(); // Trame vide si erreur
 }
 
 void BusManager::closeSocket() {
