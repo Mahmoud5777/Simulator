@@ -13,7 +13,5 @@
             int getFrameID() const { return frameID; }
             std::vector<uint8_t> getData() const { return data; }
             void setData(const std::vector<uint8_t>& newData) { data = newData; }
-            
-            
     };
 #endif

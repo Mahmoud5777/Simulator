@@ -16,8 +16,10 @@ std::string CanManager::decoder(const std::vector<uint8_t>& data) {
 void CanManager::send(const std::string& frame) {
     std::vector<uint8_t> encodedData = encoder(frame);
     for (auto byte : encodedData) {
-        std::cout << static_cast<int>(byte) << std::endl; // Affichage forcement en int 
+        std::cout << static_cast<int>(byte); // Affichage forcement en int 
+        std::cout << " ";
     }
+    std::cout << std::endl;
     size_t dataSize = encodedData.size();
     if (dataSize == 0) {    
             std::cerr << "No data to send" << std::endl;
@@ -25,23 +27,23 @@ void CanManager::send(const std::string& frame) {
     }
     FrameCanTP frameCanTP;
     if (dataSize <= 7) {
-        std::cout << "Sending single frame with data :" << std::endl;
-        for (auto byte : encodedData) {
+        std::cout << "Sending single frame :" << std::endl;
+        auto singleFrame = frameCanTP.CreateSingleFrame(encodedData, dataSize);
+        for (auto byte : singleFrame) {
             std::cout << static_cast<int>(byte) << " ";
         }
         std::cout << std::endl;
-        auto singleFrame = frameCanTP.CreateSingleFrame(encodedData, dataSize);
         FrameCAN canFrame(0x123, singleFrame);  // Mettre un ID CAN adapté
         busManager.send(canFrame);
     } else {
         std::vector<uint8_t> dataFirstFrame(encodedData.begin(), encodedData.begin() + 6);
         std::cout << "Sending first frame with data :" << std::endl;
-        for (auto byte : dataFirstFrame) {
+        encodedData.erase(encodedData.begin(), encodedData.begin() + 6);
+        auto firstFrame = frameCanTP.CreateFirstFrame(dataFirstFrame, dataSize);
+        for (auto byte : firstFrame) {
             std::cout << static_cast<int>(byte) << " ";
         }
         std::cout << std::endl;
-        encodedData.erase(encodedData.begin(), encodedData.begin() + 6);
-        auto firstFrame = frameCanTP.CreateFirstFrame(dataFirstFrame, dataSize);
         FrameCAN canFrame(0x123, firstFrame);
         busManager.send(canFrame);
         while (!encodedData.empty()) {
@@ -58,11 +60,11 @@ void CanManager::send(const std::string& frame) {
                     size_t sizeToSend = std::min<size_t>(7, encodedData.size());
                     std::vector<uint8_t> consecutiveData(encodedData.begin(), encodedData.begin() + sizeToSend);
                     std::cout << "Sending consecutive frame with data :" << std::endl;
-                    for (auto byte : consecutiveData) {
+                    auto consecutiveFrame = frameCanTP.CreateConsecutiveFrame(consecutiveData, i + 1);
+                    for (auto byte : consecutiveFrame) {
                         std::cout << static_cast<int>(byte) << " ";
                     }
                     std::cout << std::endl;
-                    auto consecutiveFrame = frameCanTP.CreateConsecutiveFrame(consecutiveData, i + 1);
                     FrameCAN canFrame(0x123, consecutiveFrame);
                     busManager.send(canFrame);
                     encodedData.erase(encodedData.begin(), encodedData.begin() + sizeToSend);
@@ -84,7 +86,7 @@ std::string CanManager::receive() {
     uint16_t expectedSize = 0;
     FrameCAN receivedFrame = busManager.receive();
     if (receivedFrame.getData().empty()) {
-        std::cerr << "No data to send" << std::endl;
+        std::cerr << "No data to receive" << std::endl;
         return "";
     }
     std::vector<uint8_t> data = receivedFrame.getData();

@@ -24,30 +24,42 @@ BusManager::~BusManager() {
 }
 
 bool BusManager::createVCAN() {
-    #ifdef __linux__
-        int ret = 0;
-        ret = system("modprobe vcan");
-        if (ret != 0) {
-            std::cerr << "Erreur modprobe vcan\n";
-            return false;
-        }
-        system("ip link delete vcan0 2>/dev/null");
-        ret = system("ip link add dev vcan0 type vcan");
-        if (ret != 0) {
-            std::cerr << "Erreur création interface vcan0\n";
-            return false;
-        }
-        ret = system("ip link set up vcan0");
-        if (ret != 0) {
-            std::cerr << "Erreur activation interface vcan0\n";
-            return false;
-        }
-        std::cout << "Interface vcan0 créée et activée\n";
-        return true;
-    #else
-        std::cerr << "createVCAN() only supported on Linux." << std::endl;
+#ifdef __linux__
+    // 1. Chargement du module noyau
+    if (system("modprobe -q vcan && modprobe -q can_raw") != 0) {
+        std::cerr << "Erreur: Impossible de charger les modules noyau vcan/can_raw" << std::endl;
         return false;
-    #endif
+    }
+
+    // 2. Suppression de l'interface existante (silencieuse)
+    system("ip link delete vcan0 2>/dev/null");
+
+    // 3. Création de l'interface
+    if (system("ip link add dev vcan0 type vcan") != 0) {
+        std::cerr << "Erreur: Échec de création de vcan0" << std::endl;
+        return false;
+    }
+
+    // 4. Activation de l'interface
+    if (system("ip link set up vcan0") != 0) {
+        std::cerr << "Erreur: Échec d'activation de vcan0" << std::endl;
+        // Nettoyage en cas d'échec
+        system("ip link delete vcan0 2>/dev/null");
+        return false;
+    }
+
+    // Vérification finale
+    if (system("ip link show vcan0 >/dev/null 2>&1") != 0) {
+        std::cerr << "Erreur: Vérification de vcan0 échouée" << std::endl;
+        return false;
+    }
+
+    std::cout << "Success: Interface vcan0 créée et activée" << std::endl;
+    return true;
+#else
+    std::cerr << "Erreur: createVCAN() n'est supporté que sous Linux" << std::endl;
+    return false;
+#endif
 }
 
 
