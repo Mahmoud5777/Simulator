@@ -3,7 +3,7 @@
 #include <iostream>
 
 #ifdef __linux__
-#include <cstdlib>
+#include <cstdlib> 
 #include <cstring>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -15,7 +15,7 @@
 
 BusManager::BusManager() {
 #ifdef __linux__   
-    socket_fd = -1;
+    socket_fd = -1; // Initialisation du descripteur de socket
 #endif
 }
 
@@ -25,43 +25,77 @@ BusManager::~BusManager() {
 
 bool BusManager::createVCAN() {
 #ifdef __linux__
-    // Mode silencieux pour la simulation
-    system("modprobe vcan >/dev/null 2>&1");
-    system("modprobe can_raw >/dev/null 2>&1");
-    system("ip link delete vcan0 >/dev/null 2>&1");
-    system("ip link add dev vcan0 type vcan >/dev/null 2>&1");
-    system("ip link set up vcan0 >/dev/null 2>&1");
-    
-    std::cout << "[SIM] Interface vcan0 créée (mode simulation)" << std::endl;
+    // 1. Chargement du module noyau
+    if (system("modprobe -q vcan && modprobe -q can_raw") != 0) {
+        std::cerr << "Erreur: Impossible de charger les modules noyau vcan/can_raw" << std::endl;
+        return false;
+    }
+
+    // 2. Suppression de l'interface existante (silencieuse)
+    system("ip link delete vcan0 2>/dev/null");
+
+    // 3. Création de l'interface
+    if (system("ip link add dev vcan0 type vcan") != 0) {
+        std::cerr << "Erreur: Échec de création de vcan0" << std::endl;
+        return false;
+    }
+
+    // 4. Activation de l'interface
+    if (system("ip link set up vcan0") != 0) {
+        std::cerr << "Erreur: Échec d'activation de vcan0" << std::endl;
+        // Nettoyage en cas d'échec
+        system("ip link delete vcan0 2>/dev/null");
+        return false;
+    }
+
+    // Vérification finale
+    if (system("ip link show vcan0 >/dev/null 2>&1") != 0) {
+        std::cerr << "Erreur: Vérification de vcan0 échouée" << std::endl;
+        return false;
+    }
+
+    std::cout << "Success: Interface vcan0 créée et activée" << std::endl;
     return true;
 #else
-    std::cerr << "CAN simulé seulement sous Linux" << std::endl;
+    std::cerr << "Erreur: createVCAN() n'est supporté que sous Linux" << std::endl;
     return false;
 #endif
 }
 
+
 bool BusManager::init() {
 #ifdef __linux__
+    struct ifreq ifr{};
+    struct sockaddr_can addr{};
+
     socket_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (socket_fd < 0) {
-        std::cerr << "[SIM] Erreur socket (simulation)" << std::endl;
+        perror("Erreur création socket CAN");
         return false;
     }
 
-    // Configuration simplifiée
-    struct ifreq ifr = {};
-    strncpy(ifr.ifr_name, "vcan0", IFNAMSIZ);
-    ioctl(socket_fd, SIOCGIFINDEX, &ifr);
+    std::strncpy(ifr.ifr_name, "vcan0", IFNAMSIZ - 1);
+    if (ioctl(socket_fd, SIOCGIFINDEX, &ifr) < 0) {
+        perror("Erreur ioctl");
+        close(socket_fd);
+        socket_fd = -1;
+        return false;
+    }
 
-    struct sockaddr_can addr = {};
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
 
-    bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr));
+    if (bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        perror("Erreur bind");
+        close(socket_fd);
+        socket_fd = -1;
+        return false;
+    }
 
-    std::cout << "[SIM] Socket CAN-TP initialisée (simulation)" << std::endl;
+    std::cout << "Socket CAN initialisée sur vcan0\n";
     return true;
 #else
+    std::cerr << "Plateforme non supportée\n";
     return false;
 #endif
 }
@@ -119,6 +153,8 @@ void BusManager::closeSocket() {
     if (socket_fd >= 0) {
         close(socket_fd);
         socket_fd = -1;
+        std::cout << "Socket CAN fermée\n";
     }
 #endif
 }
+ c est juste ?
