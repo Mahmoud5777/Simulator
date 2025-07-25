@@ -157,4 +157,3 @@ void BusManager::closeSocket() {
     }
 #endif
 }
- c est juste ?
