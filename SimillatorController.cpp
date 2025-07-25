@@ -38,9 +38,12 @@ void SimillatorController::run() {
             std::cin.ignore();
             EcuReceiver receiver(busManager);  // passe la référence BusManager à EcuReceiver
             receiver.run();
+        }else if (choice == 0) {
+            std::cout << "Exiting the simulator." << std::endl;
+            break;
         } else {
-            std::cout << "Invalid choice. Please enter '1' or '2' or '0' to exit the simulator " << std::endl;
-        }
+            std::cout << "Invalid choice. Please enter '1' or '2' or '0' to exit the simulator." << std::endl;
+        }   
     }
 }
 

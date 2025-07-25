@@ -14,5 +14,6 @@ int main() {
     }
     SimillatorController simulator(busManager); 
     simulator.run();
+    busManager.closeSocket();
     return 0;
 }
