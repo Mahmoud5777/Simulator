@@ -10,6 +10,6 @@
         void run();
     private:
         BusManager busManager;  // Référence au BusManager partagé
-    }
+    };
 
 #endif

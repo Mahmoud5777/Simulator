@@ -1,40 +1,70 @@
 #include "SimillatorController.hpp"
 #include <iostream>
-#include <string>
 #include "EcuSender.hpp"
 #include "EcuReceiver.hpp"
 #include "BusManager.hpp"
+
 SimillatorController::SimillatorController(BusManager& busManager)
     : busManager(busManager) {}
 
 void SimillatorController::run() {
-    std::cout << "Simulator is running." << std::endl;
-    std::cout << "Would you like to send (1) or receive (2) data ? (1/2): ";
+    std::cout << "═══════════════════════════════════════════════\n";
+    std::cout << "         🚘 CAN TP Virtual Simulator           \n";
+    std::cout << "═══════════════════════════════════════════════\n";
+
     int choice = -1;
     int send = 0;
     int receive = 0;
-    while (choice != 0) {
-        if (send > 0) {
-            std::cout << "Choose 1 to continue sending data or 0 to exit : ";
-        } else if (receive > 0) {
-            std::cout << "Choose 2 to continue receiving data or 0 to exit : ";
+
+    while (true) {
+        std::cout << "\n Menu principal :\n";
+        std::cout << " ┌────────────────────────────────────────────┐\n";
+        std::cout << " │ [1] Envoyer une trame CAN                  │\n";
+        std::cout << " │ [2] Recevoir une trame CAN                 │\n";
+        std::cout << " │ [0] Quitter                                │\n";
+        std::cout << " └────────────────────────────────────────────┘\n";
+        std::cout << " 👉 Votre choix : ";
+
+        if (!(std::cin >> choice)) {
+            std::cin.clear(); // Nettoyer l'état d'erreur
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignorer la mauvaise saisie
+            std::cout << " Entrée invalide. Veuillez entrer un chiffre (0, 1 ou 2).\n";
+            continue;
         }
-        std::cin >> choice;
-        std::cin.ignore();
+
+        std::cin.ignore(); // Supprimer le retour à la ligne
+
         if (choice == 1) {
             send++;
-            EcuSender sender(busManager);   // passe la référence BusManager à EcuSender
+            std::cout << "\n──────────────────────────────────────────────\n";
+            EcuSender sender(busManager); // passe la référence
             sender.run();
-        }else if (choice == 2) {
+            int subChoice;
+            std::cout << "\n 🔁 Continuer à envoyer ? (1 = Oui, autre = Retour au menu) : ";
+            std::cin >> subChoice;
+            if (subChoice != 1) continue;
+        }
+
+        else if (choice == 2) {
             receive++;
-            EcuReceiver receiver(busManager);  // passe la référence BusManager à EcuReceiver
+            std::cout << "\n──────────────────────────────────────────────\n";
+            EcuReceiver receiver(busManager);
             receiver.run();
-        }else if (choice == 0) {
-            std::cout << "Exiting the simulator." << std::endl;
+            int subChoice;
+            std::cout << "\n 🔁 Continuer à recevoir ? (2 = Oui, autre = Retour au menu) : ";
+            std::cin >> subChoice;
+            if (subChoice != 2) continue;
+        }
+
+        else if (choice == 0) {
+            std::cout << "\n Fin de simulation. Merci d'avoir utilisé le simulateur.\n";
             break;
-        } else {
-            std::cout << "Invalid choice. Please enter '1' or '2' or '0' to exit the simulator." << std::endl;
-        }   
+        }
+
+        else {
+            std::cout << " Choix invalide. Veuillez entrer 0, 1 ou 2.\n";
+        }
     }
 }
+
 
