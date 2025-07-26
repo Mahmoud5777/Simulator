@@ -57,7 +57,9 @@ void SimillatorController::run() {
         }
 
         else if (choice == 0) {
-            std::cout << "\n Fin de simulation. Merci d'avoir utilisé le simulateur.\n";
+            std::cout << "═════════════════════════════════════════════════════════════\n";
+            std::cout << "\n                     Fin de simulation.                     \n";
+            std::cout << "═════════════════════════════════════════════════════════════\n";
             break;
         }
 

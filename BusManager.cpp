@@ -88,7 +88,6 @@ bool BusManager::init() {
         socket_fd = -1;
         return false;
     }
-    std::cout << "CAN socket initialized on vcan0\n";
     return true;
 #else
     std::cerr << "Platform not supported\n";
@@ -99,7 +98,7 @@ bool BusManager::init() {
 void BusManager::send(const FrameCAN& trame) {
 #ifdef __linux__
     if (socket_fd < 0) {
-        std::cerr << "CAN socket not initialized\n";
+        std::cerr << "CAN socket not initialized !\n";
         return;
     }
     struct can_frame frame{};
@@ -108,7 +107,7 @@ void BusManager::send(const FrameCAN& trame) {
     frame.can_dlc = trame.getData().size(); 
     std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
-        perror("CAN sending error");
+        perror("CAN sending error !");
     }else{
         std::cout << "CAN frame sent (ID: 0x" << std::hex << frame.can_id << std::dec << ", " << (int)frame.can_dlc << " octets)\n";
     }
@@ -118,7 +117,7 @@ void BusManager::send(const FrameCAN& trame) {
 FrameCAN BusManager::receive() {
 #ifdef __linux__
     if (socket_fd < 0) {
-        std::cerr << "CAN socket not initialized for reception\n";
+        std::cerr << "CAN socket not initialized for reception !\n";
         return FrameCAN(); 
     }
     struct can_frame canFrame{};
@@ -143,7 +142,6 @@ void BusManager::closeSocket() {
     if (socket_fd >= 0) {
         close(socket_fd);
         socket_fd = -1;
-        std::cout << "Closed CAN socket\n";
     }
 #endif
 }

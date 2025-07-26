@@ -7,7 +7,7 @@ EcuReceiver::EcuReceiver(BusManager& busManager)
     : bus(busManager) {}
 
 void EcuReceiver::run() {
-    std::cout << "EcuReceiver is running." << std::endl;
+    std::cout << "EcuReceiver is running..." << std::endl;
     CanManager canManager(bus);  // passe la référence BusManager à CanManager
     std::cout << "Waiting for data..." << std::endl;
     std::string data = canManager.receive();
