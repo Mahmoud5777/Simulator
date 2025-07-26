@@ -4,6 +4,7 @@
 #include <thread>
 #include <algorithm>
 #include "BusManager.hpp"
+#include <ID.hpp>
 
 std::vector<uint8_t> CanManager::encoder(const std::string& data) {
     return std::vector<uint8_t>(data.begin(), data.end());
@@ -14,6 +15,7 @@ std::string CanManager::decoder(const std::vector<uint8_t>& data) {
 }
 
 void CanManager::send(const std::string& frame) {
+    ID frame_id = ID::buildSmartID(); // Génération d'un ID CAN aléatoire
     std::vector<uint8_t> encodedData = encoder(frame);
     for (auto byte : encodedData) {
         std::cout << static_cast<int>(byte); // Affichage forcement en int 
@@ -33,22 +35,27 @@ void CanManager::send(const std::string& frame) {
             std::cout << static_cast<int>(byte) << " ";
         }
         std::cout << std::endl;
-        FrameCAN canFrame(0x123, singleFrame);  // Mettre un ID CAN adapté
+        FrameCAN canFrame( frame_id, singleFrame);  // Mettre un ID CAN adapté
         busManager.send(canFrame);
     } else {
         std::vector<uint8_t> dataFirstFrame(encodedData.begin(), encodedData.begin() + 6);
-        std::cout << "Sending first frame with data :" << std::endl;
+        std::cout << "Sending first frame :" << std::endl;
         encodedData.erase(encodedData.begin(), encodedData.begin() + 6);
         auto firstFrame = frameCanTP.CreateFirstFrame(dataFirstFrame, dataSize);
         for (auto byte : firstFrame) {
             std::cout << static_cast<int>(byte) << " ";
         }
         std::cout << std::endl;
-        FrameCAN canFrame(0x123, firstFrame);
+        FrameCAN canFrame(frame_id, firstFrame);
         busManager.send(canFrame);
         while (!encodedData.empty()) {
             FrameCAN flowControlFrame = busManager.receive();
+            std::cout << "Received flow control frame :" << std::endl;
             auto flowControlData = flowControlFrame.getData();
+            for (auto byte : flowControlData) {
+                std::cout << static_cast<int>(byte) << " ";
+            }
+            std::cout << std::endl;
             uint8_t flowStatus = flowControlData[0] & 0x0F;
             uint8_t blockSize = flowControlData[1];
             uint8_t separationTime = flowControlData[2];
@@ -59,13 +66,13 @@ void CanManager::send(const std::string& frame) {
                 for (uint8_t i = 0; i < blockSize && !encodedData.empty(); ++i) {
                     size_t sizeToSend = std::min<size_t>(7, encodedData.size());
                     std::vector<uint8_t> consecutiveData(encodedData.begin(), encodedData.begin() + sizeToSend);
-                    std::cout << "Sending consecutive frame with data :" << std::endl;
+                    std::cout << "Sending consecutive frame :" << std::endl;
                     auto consecutiveFrame = frameCanTP.CreateConsecutiveFrame(consecutiveData, i + 1);
                     for (auto byte : consecutiveFrame) {
                         std::cout << static_cast<int>(byte) << " ";
                     }
                     std::cout << std::endl;
-                    FrameCAN canFrame(0x123, consecutiveFrame);
+                    FrameCAN canFrame(frame_id, consecutiveFrame);
                     busManager.send(canFrame);
                     encodedData.erase(encodedData.begin(), encodedData.begin() + sizeToSend);
                     std::this_thread::sleep_for(std::chrono::milliseconds(separationTime));
@@ -81,6 +88,7 @@ void CanManager::send(const std::string& frame) {
 }
 
 std::string CanManager::receive() {
+    ID frame_id = ID::buildSmartID(); // Génération d'un ID CAN aléatoire
     FrameCanTP frameCanTP;
     std::vector<uint8_t> buffer;
     uint16_t expectedSize = 0;
@@ -98,7 +106,7 @@ std::string CanManager::receive() {
         buffer = frameCanTP.GetDataFromFirstFrame(data);
         // Envoyer Flow Control: Continue, BlockSize=8, SeparationTime=10ms
         std::vector<uint8_t> flowControlData = frameCanTP.CreateFlowControlFrame(0x00, 8, 10);
-        FrameCAN flowControlFrame(0x123, flowControlData);
+        FrameCAN flowControlFrame(frame_id, flowControlData);
         busManager.send(flowControlFrame);
         uint8_t framesReceivedInBlock = 0;
         const uint8_t blockSize = 8;
@@ -111,11 +119,11 @@ std::string CanManager::receive() {
             if (data.empty()) {
                 if (++waitCount > MAX_WAIT_RETRIES) {
                     std::vector<uint8_t> abortFrame = frameCanTP.CreateFlowControlFrame(0x02, 0, 0);
-                    busManager.send(FrameCAN(0x123, abortFrame));
+                    busManager.send(FrameCAN(frame_id, abortFrame));
                     break; // Sortir de la boucle si trop d'attentes
                 }
                 std::vector<uint8_t> waitFrame = frameCanTP.CreateFlowControlFrame(0x01, 0, separationTimeMs);
-                busManager.send(FrameCAN(0x123, waitFrame));
+                busManager.send(FrameCAN(frame_id, waitFrame));
                 std::this_thread::sleep_for(std::chrono::milliseconds(separationTimeMs));
                 continue; // Retour au début de la boucle pour nouvelle réception
             }
@@ -126,7 +134,7 @@ std::string CanManager::receive() {
             if (blockSize != 0 && framesReceivedInBlock >= blockSize) {
                 framesReceivedInBlock = 0;
                 std::vector<uint8_t> fcData = frameCanTP.CreateFlowControlFrame(0x00, blockSize, separationTimeMs);
-                FrameCAN fcFrame(0x123, fcData);
+                FrameCAN fcFrame(frame_id, fcData);
                 busManager.send(fcFrame);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(separationTimeMs));

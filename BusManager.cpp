@@ -11,6 +11,7 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <net/if.h>
+#include <cstdint>
 #endif
 
 BusManager::BusManager() {
@@ -102,13 +103,14 @@ void BusManager::send(const FrameCAN& trame) {
         return;
     }
     struct can_frame frame{};
-    frame.can_id = trame.getFrameID();    
+    uint32_t raw_id = trame.getFrameID().getID(); // Récupération de l'ID CAN
+    frame.can_id = trame.getFrameID().isExtended()? (raw_id | CAN_EFF_FLAG) : raw_id; 
     frame.can_dlc = trame.getData().size(); 
     std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
         perror("CAN sending error");
     }else{
-        std::cout << "CAN frame sent with ID: " << std::hex << frame.can_id << std::dec << " and DLC: " << (int)frame.can_dlc << std::endl;
+        std::cout << "CAN frame sent (ID: 0x" << std::hex << frame.can_id << std::dec << ", " << (int)frame.can_dlc << " octets)\n";
     }
 #endif
 }
@@ -129,7 +131,7 @@ FrameCAN BusManager::receive() {
         std::cerr << "Incomplete CAN frame received\n";
         return FrameCAN();
     }
-    return FrameCAN(canFrame.can_id, std::vector<uint8_t>(canFrame.data, canFrame.data + canFrame.can_dlc));
+    return FrameCAN(ID(canFrame.can_id & CAN_EFF_FLAG ? (canFrame.can_id & CAN_EFF_MASK) : canFrame.can_id),std::vector<uint8_t>(canFrame.data, canFrame.data + canFrame.can_dlc));
 #else
     std::cerr << "CAN reception not supported on this platform\n";
     return FrameCAN();

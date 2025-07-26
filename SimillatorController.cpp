@@ -4,7 +4,6 @@
 #include "EcuSender.hpp"
 #include "EcuReceiver.hpp"
 #include "BusManager.hpp"
-
 SimillatorController::SimillatorController(BusManager& busManager)
     : busManager(busManager) {}
 
@@ -24,18 +23,10 @@ void SimillatorController::run() {
         std::cin.ignore();
         if (choice == 1) {
             send++;
-            std::cout << "Give your ID : " ;
-            std::string id;
-            std::cin >> id;
-            std::cin.ignore();
             EcuSender sender(busManager);   // passe la référence BusManager à EcuSender
             sender.run();
         }else if (choice == 2) {
             receive++;
-            std::cout << "Give your ID : " ;
-            std::string id;
-            std::cin >> id;
-            std::cin.ignore();
             EcuReceiver receiver(busManager);  // passe la référence BusManager à EcuReceiver
             receiver.run();
         }else if (choice == 0) {
