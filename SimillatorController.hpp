@@ -7,7 +7,6 @@
     public:
         explicit SimillatorController(BusManager& busManager);
         ~SimillatorController() = default;
-        ID getEcuID() const { return ecuID; } 
         void run();
     private:
         BusManager busManager;  // Référence au BusManager partagé
