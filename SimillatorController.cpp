@@ -17,18 +17,18 @@ void SimillatorController::run() {
     int receive = 0;
 
     while (true) {
-        std::cout << "\n Menu principal :\n";
+        std::cout << "\n Main menu :\n";
         std::cout << " ┌────────────────────────────────────────────┐\n";
-        std::cout << " │ [1] Envoyer une trame CAN                  │\n";
-        std::cout << " │ [2] Recevoir une trame CAN                 │\n";
-        std::cout << " │ [0] Quitter                                │\n";
+        std::cout << " │ [1] Send a CAN frame                       │\n";
+        std::cout << " │ [2] Receive a CAN frame                    │\n";
+        std::cout << " │ [0] exit                                   │\n";
         std::cout << " └────────────────────────────────────────────┘\n";
-        std::cout << " 👉 Votre choix : ";
+        std::cout << " 👉 Your choice : ";
 
         if (!(std::cin >> choice)) {
             std::cin.clear(); // Nettoyer l'état d'erreur
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignorer la mauvaise saisie
-            std::cout << " Entrée invalide. Veuillez entrer un chiffre (0, 1 ou 2).\n";
+            std::cout << " Invalid entry. Please enter a number (0, 1 or 2).\n";
             continue;
         }
 
@@ -40,7 +40,7 @@ void SimillatorController::run() {
             EcuSender sender(busManager); // passe la référence
             sender.run();
             int subChoice;
-            std::cout << "\n 🔁 Continuer à envoyer ? (1 = Oui, autre = Retour au menu) : ";
+            std::cout << "\n 🔁 Continue sending? (1 = Yes, other = Return to menu) : ";
             std::cin >> subChoice;
             if (subChoice != 1) continue;
         }
@@ -51,20 +51,20 @@ void SimillatorController::run() {
             EcuReceiver receiver(busManager);
             receiver.run();
             int subChoice;
-            std::cout << "\n 🔁 Continuer à recevoir ? (2 = Oui, autre = Retour au menu) : ";
+            std::cout << "\n 🔁 Continue receiving? (2 = Yes, other = Return to menu) : ";
             std::cin >> subChoice;
             if (subChoice != 2) continue;
         }
 
         else if (choice == 0) {
             std::cout << "═════════════════════════════════════════════════════════════\n";
-            std::cout << "\n                     Fin de simulation.                     \n";
+            std::cout << "                       End of simulation.                     \n";
             std::cout << "═════════════════════════════════════════════════════════════\n";
             break;
         }
 
         else {
-            std::cout << " Choix invalide. Veuillez entrer 0, 1 ou 2.\n";
+            std::cout << " Invalid choice. Please enter 0, 1, or 2.\n";
         }
     }
 }
