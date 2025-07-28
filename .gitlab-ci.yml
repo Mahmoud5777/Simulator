@@ -1,0 +1,25 @@
+stages:
+  - analysis
+
+cppcheck:
+  stage: analysis
+  image: ubuntu:22.04
+  script:
+    - apt-get update
+    - apt-get install -y cppcheck
+    - cppcheck --enable=all --error-exitcode=1 ./src 2> cppcheck-report.txt
+  artifacts:
+    paths:
+      - cppcheck-report.txt
+
+clang-tidy:
+  stage: analysis
+  image: ubuntu:22.04
+  script:
+    - apt-get update
+    - apt-get install -y clang clang-tidy bear make
+    - bear -- make -j$(nproc)
+    - run-clang-tidy -p . > clang-tidy-report.txt
+  artifacts:
+    paths:
+      - clang-tidy-report.txt
