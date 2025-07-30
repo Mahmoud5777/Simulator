@@ -9,7 +9,7 @@ cppcheck_analysis:
   script:
     - pwd    
     - ls -R  
-    - cppcheck --enable=all --std=c++17 --xml --output-file=cppcheck_report.xml .
+    - cppcheck --enable=all --std=c++17 . 2>&1 | grep -E "error|warning" || true
 
   artifacts:
     when: always
@@ -24,11 +24,13 @@ clang_tidy_analysis:
   before_script:
     - apt-get update -qq && apt-get install -y -qq clang-tidy python3 jq
   script:
+    # 1. Debug: afficher la structure (confirmer le contenu)
     - pwd
     - ls -R
     
+    # 2. Génération du compile_commands.json
     - |
-      echo "Génération du compile_commands.json..."
+      echo "Génération du fichier compile_commands.json..."
       find . -name '*.cpp' | while read -r file; do
         echo '{
           "directory": "'$(pwd)'",
@@ -37,25 +39,27 @@ clang_tidy_analysis:
         }'
       done | jq -s '.' > compile_commands.json
 
-    - echo "Vérification du fichier :"
+    # 3. Vérification du fichier généré
+    - echo "Contenu de compile_commands.json :"
     - head -n 5 compile_commands.json
-    - echo "... (tronqué)"
+    - echo "... (truncated)"
     
+    # 4. Exécution de clang-tidy
     - |
       if [ -s "compile_commands.json" ]; then
         echo "Lancement de clang-tidy..."
-        find . -name '*.cpp' -exec clang-tidy -p . {} + > clang-tidy.log 2>&1 || true
-        echo "Résumé :"
-        grep -E "warning|error" clang-tidy.log | sort | uniq -c
+        find . -name '*.cpp' -exec clang-tidy -p . src/*.cpp 2>&1 | grep -E "error|warning" | tee -a clang-tidy.log
       else
         echo "Aucun fichier .cpp trouvé !" > clang-tidy.log
       fi
-      cat clang-tidy.log
+      
+      # Garantir que le fichier existe
+      touch clang-tidy.log
+      echo "Résumé de l'analyse :"
+      tail -n 10 clang-tidy.log || true
 
   artifacts:
     when: always
     paths:
       - compile_commands.json
       - clang-tidy.log
-    reports:
-      codequality: clang-tidy.log
