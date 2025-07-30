@@ -22,21 +22,26 @@ clang_tidy_analysis:
   stage: test
   image: ubuntu:latest
   before_script:
-    - apt-get update -qq
-    - apt-get install -y -qq clang-tidy python3-pip  # Ajoutez python3-pip ici
-    - pip3 install compiledb
+    - apt-get update -qq && apt-get install -y -qq clang-tidy python3 jq
   script:
-    # Générer compile_commands.json en simulant une compilation
-    - echo '[{"directory":"/builds/mahmoud.ayedi/Simulator","command":"g++ -std=c++17 -I. -c fichier.cpp","file":"fichier.cpp"}]' > compile_commands.json
-    
-    # Alternative: utiliser compiledb si vous avez une commande de build réelle
-    # - compiledb make -B || echo "compiledb a échoué, continuation sans"
-    
-    # Exécuter clang-tidy sur tous les fichiers .cpp
-    - find . -name '*.cpp' -exec clang-tidy {} -p . --checks='*,-modernize-use-trailing-return-type' \; | tee clang-tidy.log
+    # 1. Lister tous les .cpp et générer compile_commands.json
+    - |
+      find src -name '*.cpp' | while read -r file; do
+        echo '{
+          "directory": "'$(pwd)'",
+          "command": "g++ -std=c++17 -Iinclude -c '"$file"'",
+          "file": "'"$file"'"
+        }'
+      done | jq -s '.' > compile_commands.json
+
+    # 2. Vérification (debug)
+    - ls -lh compile_commands.json
+    - head -n 20 compile_commands.json  # Affiche un extrait
+
+    # 3. Exécuter clang-tidy en parallèle (pour gérer beaucoup de fichiers)
+    - find src -name '*.cpp' -print0 | xargs -0 -P4 -n1 clang-tidy -p .
   artifacts:
-    when: always  # Même en cas de succès pour inspection
+    when: always
     paths:
+      - compile_commands.json
       - clang-tidy.log
-    reports:
-      codequality: clang-tidy.log
