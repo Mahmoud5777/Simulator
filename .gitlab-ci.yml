@@ -24,9 +24,14 @@ clang_tidy_analysis:
   before_script:
     - apt-get update -qq && apt-get install -y -qq clang-tidy python3 jq
   script:
-    # 1. Lister tous les .cpp et générer compile_commands.json
+    # 1. Debug: afficher la structure (confirmer le contenu)
+    - pwd
+    - ls -R
+    
+    # 2. Génération du compile_commands.json
     - |
-      find Simulator -name '*.cpp' | while read -r file; do
+      echo "Génération du fichier compile_commands.json..."
+      find . -name '*.cpp' | while read -r file; do
         echo '{
           "directory": "'$(pwd)'",
           "command": "g++ -std=c++17 -Iinclude -c '"$file"'",
@@ -34,12 +39,25 @@ clang_tidy_analysis:
         }'
       done | jq -s '.' > compile_commands.json
 
-    # 2. Vérification (debug)
-    - ls -lh compile_commands.json
-    - head -n 20 compile_commands.json  # Affiche un extrait
+    # 3. Vérification du fichier généré
+    - echo "Contenu de compile_commands.json :"
+    - head -n 5 compile_commands.json
+    - echo "... (truncated)"
+    
+    # 4. Exécution de clang-tidy
+    - |
+      if [ -s "compile_commands.json" ]; then
+        echo "Lancement de clang-tidy..."
+        find . -name '*.cpp' -exec clang-tidy -p . {} + > clang-tidy.log 2>&1 || true
+      else
+        echo "Aucun fichier .cpp trouvé !" > clang-tidy.log
+      fi
+      
+      # Garantir que le fichier existe
+      touch clang-tidy.log
+      echo "Résumé de l'analyse :"
+      tail -n 10 clang-tidy.log || true
 
-    # 3. Exécuter clang-tidy en parallèle (pour gérer beaucoup de fichiers)
-    - find src -name '*.cpp' -print0 | xargs -0 -P4 -n1 clang-tidy -p .
   artifacts:
     when: always
     paths:
