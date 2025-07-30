@@ -1,13 +1,21 @@
 cppcheck_analysis:
   stage: test
-  image: ubuntu:latest
+  image: ubuntu:latest  # Environnement Linux
   before_script:
     - apt-get update -qq && apt-get install -y -qq cppcheck
   script:
-    - pwd  # Affiche le répertoire courant
-    - ls -R  # Liste tous les fichiers (debug)
-    - cppcheck --enable=all --std=c++17 --xml --output-file=cppcheck_report.xml C:\Users\ayedi\Desktop\similator\Simulator
+    # Debug: vérifier la structure des fichiers
+    - pwd    # /builds/votre_username/Simulator
+    - ls -R  # Vérifier que 'src/' existe
+
+    # Option 1: Analyser tout le projet
+    - cppcheck --enable=all --std=c++17 --xml --output-file=cppcheck_report.xml .
+
+    # Option 2: Analyser uniquement 'src/' (recommandé)
+    # - cppcheck --enable=all --std=c++17 --xml --output-file=cppcheck_report.xml src/
   artifacts:
     when: always
+    paths:
+      - cppcheck_report.xml
     reports:
       codequality: cppcheck_report.xml
