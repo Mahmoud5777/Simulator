@@ -6,7 +6,7 @@ cppcheck_analysis:
   script:
     - pwd  # Affiche le répertoire courant
     - ls -R  # Liste tous les fichiers (debug)
-    - cppcheck --enable=all --std=c++17 --xml --output-file=cppcheck_report.xml ./src  # Adaptez "./src" à votre structure
+    - cppcheck --enable=all --std=c++17 --xml --output-file=cppcheck_report.xml C:\Users\ayedi\Desktop\similator\Simulator
   artifacts:
     when: always
     reports:
