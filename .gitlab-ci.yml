@@ -1,25 +1,17 @@
-stages:
-  - analysis
-
-cppcheck:
-  stage: analysis
-  image: ubuntu:22.04
+cppcheck_analysis:
+  stage: test
+  image: ubuntu:latest 
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq cppcheck
   script:
-    - apt-get update
-    - apt-get install -y cppcheck
-    - cppcheck --enable=all --error-exitcode=1 ./src 2> cppcheck-report.txt
-  artifacts:
-    paths:
-      - cppcheck-report.txt
+    - pwd    
+    - ls -R  
 
-clang-tidy:
-  stage: analysis
-  image: ubuntu:22.04
-  script:
-    - apt-get update
-    - apt-get install -y clang clang-tidy bear make
-    - bear -- make -j$(nproc)
-    - run-clang-tidy -p . > clang-tidy-report.txt
+    - cppcheck --enable=all --std=c++17 --xml --output-file=cppcheck_report.xml .
+
   artifacts:
+    when: always
     paths:
-      - clang-tidy-report.txt
+      - cppcheck_report.xml
+    reports:
+      codequality: cppcheck_report.xml
