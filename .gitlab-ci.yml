@@ -26,7 +26,7 @@ clang_tidy_analysis:
   script:
     # 1. Lister tous les .cpp et générer compile_commands.json
     - |
-      find src -name '*.cpp' | while read -r file; do
+      find Simulator -name '*.cpp' | while read -r file; do
         echo '{
           "directory": "'$(pwd)'",
           "command": "g++ -std=c++17 -Iinclude -c '"$file"'",
