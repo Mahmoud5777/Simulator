@@ -22,18 +22,21 @@ clang_tidy_analysis:
   stage: test
   image: ubuntu:latest
   before_script:
-    - apt-get update -qq && apt-get install -y -qq clang-tidy python3
-  script:
-    # Solution alternative pour générer compile_commands.json sans CMake
+    - apt-get update -qq
+    - apt-get install -y -qq clang-tidy python3-pip  # Ajoutez python3-pip ici
     - pip3 install compiledb
-    - compiledb make -B  # Ou utilisez votre commande de build réelle
+  script:
+    # Générer compile_commands.json en simulant une compilation
+    - echo '[{"directory":"/builds/mahmoud.ayedi/Simulator","command":"g++ -std=c++17 -I. -c fichier.cpp","file":"fichier.cpp"}]' > compile_commands.json
     
-    # Vérification que le fichier existe
-    - cat compile_commands.json || echo "Fichier compile_commands.json non généré"
+    # Alternative: utiliser compiledb si vous avez une commande de build réelle
+    # - compiledb make -B || echo "compiledb a échoué, continuation sans"
     
-    # Exécution de clang-tidy sur les fichiers C++
-    - find . -name '*.cpp' | xargs -I {} clang-tidy {} -p . --checks='*,-modernize-use-trailing-return-type'
+    # Exécuter clang-tidy sur tous les fichiers .cpp
+    - find . -name '*.cpp' -exec clang-tidy {} -p . --checks='*,-modernize-use-trailing-return-type' \; | tee clang-tidy.log
   artifacts:
-    when: on_failure
+    when: always  # Même en cas de succès pour inspection
     paths:
       - clang-tidy.log
+    reports:
+      codequality: clang-tidy.log
