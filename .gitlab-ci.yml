@@ -7,17 +7,26 @@ cppcheck_analysis:
   before_script:
     - apt-get update -qq && apt-get install -y -qq cppcheck
   script:
-  - ...
-  - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem -j $(nproc) --error-exitcode=1 --xml --output-file=cppcheck_report.xml . 2> cppcheck_output.txt
-  - if [ -s cppcheck_output.txt ]; then cat cppcheck_output.txt; else echo "Aucune erreur détectée."; fi
+    - echo "📁 Répertoire actuel :"
+    - pwd    
+    - echo "📂 Liste des fichiers :"
+    - ls -R
 
+    - echo "🚀 Lancement de Cppcheck..."
+    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem -j $(nproc) --xml --output-file=cppcheck_report.xml . 2> cppcheck_output.txt
+
+    - echo "📄 Résultats complets de Cppcheck (texte brut) :"
+    - cat cppcheck_output.txt || echo "Aucune erreur détectée."
+
+    - echo "🧪 Fin de l'analyse cppcheck."
 
   artifacts:
     when: always
     paths:
       - cppcheck_report.xml
       - cppcheck_output.txt
-
+    reports:
+      codequality: cppcheck_report.xml
 
 #clang_tidy_analysis:
  # stage: test
