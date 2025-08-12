@@ -3,32 +3,28 @@ stages:
 
 cppcheck_analysis:
   stage: test
-  image: ubuntu:latest 
+  image: ubuntu:latest
   before_script:
     - apt-get update -qq && apt-get install -y -qq cppcheck
   script:
     - echo "📁 Répertoire actuel :"
-    - pwd    
+    - pwd
     - echo "📂 Liste des fichiers :"
     - ls -R
 
-    - echo "🚀 Lancement de Cppcheck..."
-    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem --quiet --xml --output-file=cppcheck_report.xml . > cppcheck_stdout.txt 2> cppcheck_stderr.txt
+    - echo "🚀 Lancement de cppcheck..."
+    # Exécute cppcheck, redirige stderr vers un fichier pour capturer les erreurs/warnings
+    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem --quiet --xml --output-file=cppcheck_report.xml . 2> cppcheck_errors.txt
 
-    - echo "📄 Sortie standard (stdout) de Cppcheck :"
-    - cat cppcheck_stdout.txt || echo "stdout vide."
-
-    - echo "📄 Sortie erreur (stderr) de Cppcheck :"
-    - cat cppcheck_stderr.txt || echo "stderr vide."
-
-    - echo "🧪 Fin de l'analyse cppcheck."
+    - echo "📄 Résultats de cppcheck (stderr) :"
+    - if [ -s cppcheck_errors.txt ]; then cat cppcheck_errors.txt; else echo "Aucun problème détecté par cppcheck."; fi
 
   artifacts:
     when: always
     paths:
       - cppcheck_report.xml
-      - cppcheck_stdout.txt
-      - cppcheck_stderr.txt
+      - cppcheck_errors.txt
+
 
 
 #clang_tidy_analysis:
