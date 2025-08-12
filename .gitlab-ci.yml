@@ -13,10 +13,13 @@ cppcheck_analysis:
     - ls -R
 
     - echo "🚀 Lancement de Cppcheck..."
-    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem -j $(nproc) --xml --output-file=cppcheck_report.xml . 2> cppcheck_output.txt
+    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem --quiet --xml --output-file=cppcheck_report.xml . > cppcheck_stdout.txt 2> cppcheck_stderr.txt
 
-    - echo "📄 Résultats complets de Cppcheck (texte brut) :"
-    - cat cppcheck_output.txt || echo "Aucune erreur détectée."
+    - echo "📄 Sortie standard (stdout) de Cppcheck :"
+    - cat cppcheck_stdout.txt || echo "stdout vide."
+
+    - echo "📄 Sortie erreur (stderr) de Cppcheck :"
+    - cat cppcheck_stderr.txt || echo "stderr vide."
 
     - echo "🧪 Fin de l'analyse cppcheck."
 
@@ -24,9 +27,9 @@ cppcheck_analysis:
     when: always
     paths:
       - cppcheck_report.xml
-      - cppcheck_output.txt
-    reports:
-      codequality: cppcheck_report.xml
+      - cppcheck_stdout.txt
+      - cppcheck_stderr.txt
+
 
 #clang_tidy_analysis:
  # stage: test
