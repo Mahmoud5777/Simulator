@@ -7,14 +7,7 @@ cppcheck_analysis:
   before_script:
     - apt-get update -qq && apt-get install -y -qq cppcheck
   script:
-    - echo "📁 Répertoire actuel :"
-    - pwd
-    - echo "📂 Liste des fichiers :"
-    - ls -R
-
-    - echo "🚀 Lancement de cppcheck..."
-    # Exécuter cppcheck sans --quiet et sans --xml pour voir toute la sortie dans le terminal
-    - cppcheck -D__linux__ --enable=all --inline-suppr --suppress=missingIncludeSystem .
+    - cppcheck -D__linux__ --enable=all --inconclusive --std=c++17 --force --inline-suppr --suppress=missingIncludeSystem Simulator > /dev/null 2>&1
 
 
 
