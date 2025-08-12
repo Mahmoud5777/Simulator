@@ -13,17 +13,15 @@ cppcheck_analysis:
     - ls -R
 
     - echo "🚀 Lancement de cppcheck..."
-    # Exécute cppcheck, redirige stderr vers un fichier pour capturer les erreurs/warnings
-    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem --quiet --xml --output-file=cppcheck_report.xml . 2> cppcheck_errors.txt
-
-    - echo "📄 Résultats de cppcheck (stderr) :"
-    - if [ -s cppcheck_errors.txt ]; then cat cppcheck_errors.txt; else echo "Aucun problème détecté par cppcheck."; fi
+    # Exécuter cppcheck sans --quiet et sans --xml pour voir toute la sortie dans le terminal
+    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem .
 
   artifacts:
     when: always
     paths:
       - cppcheck_report.xml
-      - cppcheck_errors.txt
+      - cppcheck_stdout.txt
+      - cppcheck_stderr.txt
 
 
 
