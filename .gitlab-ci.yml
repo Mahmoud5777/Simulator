@@ -5,15 +5,15 @@ cppcheck_analysis:
   stage: test
   image: ubuntu:latest
   before_script:
-    - apt-get update -qq && apt-get install -y -qq cppcheck
+    - apt-get update -qq && apt-get install -y -qq cppcheck ccze
   script:
     - echo "📁 Répertoire actuel :"
     - pwd
     - echo "📂 Liste des fichiers :"
     - ls -R
+    - echo "🚀 Lancement de Cppcheck dans le dossier courant avec coloration..."
+    - cppcheck --enable=all --inconclusive --std=c++17 --force --suppress=missingIncludeSystem . 2>&1 | ccze -A || true
 
-    - echo "🚀 Lancement de Cppcheck dans le dossier courant..."
-    - cppcheck --enable=all --inconclusive --std=c++17 --force --suppress=missingIncludeSystem .
 
 
 
