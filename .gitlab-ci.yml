@@ -14,7 +14,9 @@ cppcheck_analysis:
 
     - echo "🚀 Lancement de cppcheck..."
     # Exécuter cppcheck sans --quiet et sans --xml pour voir toute la sortie dans le terminal
-    - cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem .
+    - cppcheck -D__linux__ --enable=all --inline-suppr --suppress=missingIncludeSystem .
+
+
 
   artifacts:
     when: always
