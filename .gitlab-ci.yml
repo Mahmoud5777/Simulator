@@ -13,7 +13,8 @@ cppcheck_analysis:
     - ls -R
 
     - echo "🚀 Lancement de Cppcheck dans le dossier courant..."
-    - cppcheck --enable=all --inconclusive --std=c++17 --force . 2>&1
+    - cppcheck --enable=all --inconclusive --std=c++17 --force --suppress=missingIncludeSystem .
+
 
 
 
