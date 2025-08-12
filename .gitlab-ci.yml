@@ -18,14 +18,6 @@ cppcheck_analysis:
 
 
 
-  artifacts:
-    when: always
-    paths:
-      - cppcheck_report.xml
-      - cppcheck_stdout.txt
-      - cppcheck_stderr.txt
-
-
 
 #clang_tidy_analysis:
  # stage: test
