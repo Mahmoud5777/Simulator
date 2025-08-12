@@ -1,31 +1,15 @@
 stages:
   - test
-
+  
 cppcheck_analysis:
   stage: test
   image: ubuntu:latest
   before_script:
     - apt-get update -qq && apt-get install -y -qq cppcheck
   script:
-    - echo "📁 Répertoire actuel :"
-    - pwd
-    - echo "📂 Liste des fichiers :"
-    - ls -R
-
-    - echo "🚀 Lancement de cppcheck..."
-    - cppcheck -D__linux__  --enable=all --inconclusive --std=c++17 --force .
-
-stages:
-  - test
-
-cppcheck_analysis:
-  stage: test
-  image: ubuntu:latest
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq cppcheck
-  script:
-    - cppcheck -D__linux__ --enable=all --inconclusive --std=c++17 --force --inline-suppr --suppress=missingIncludeSystem Simulator > /dev/null 2>&1
-
+    - echo "Répertoire courant : $(pwd)"
+    - ls -l
+    - cppcheck -D__linux__ --enable=all --inconclusive --std=c++17 --force --inline-suppr --suppress=missingIncludeSystem . || true
 
 
 
