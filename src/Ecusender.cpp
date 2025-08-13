@@ -1,8 +1,8 @@
 // EcuSender.cpp
-#include "EcuSender.hpp"
+#include "../include/EcuSender.hpp"
 #include <iostream>
 #include <string>
-#include "CanManager.hpp"
+#include "../include/CanManager.hpp"
 
 EcuSender::EcuSender(BusManager& busManager)
     : bus(busManager) {}

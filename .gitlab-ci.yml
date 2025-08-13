@@ -15,10 +15,6 @@ cppcheck_analysis:
     - cppcheck --enable=all --inconclusive --std=c++17 --force --suppress=missingIncludeSystem . 2>&1 | ccze -A || true
 
 
-
-
-
-
 #clang_tidy_analysis:
  # stage: test
   #image: ubuntu:latest

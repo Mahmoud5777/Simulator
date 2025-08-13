@@ -1,7 +1,7 @@
 // EcuReceiver.cpp
-#include "EcuReceiver.hpp"
+#include "../include/EcuReceiver.hpp"
 #include <iostream>
-#include "CanManager.hpp"
+#include "../include/CanManager.hpp"
 
 EcuReceiver::EcuReceiver(BusManager& busManager)
     : bus(busManager) {}

@@ -1,8 +1,8 @@
-#include "SimillatorController.hpp"
+#include "../include/SimillatorController.hpp"
 #include <iostream>
-#include "EcuSender.hpp"
-#include "EcuReceiver.hpp"
-#include "BusManager.hpp"
+#include "../include/EcuSender.hpp"
+#include "../include/EcuReceiver.hpp"
+#include "../include/BusManager.hpp"
 
 SimillatorController::SimillatorController(BusManager& busManager)
     : busManager(busManager) {}

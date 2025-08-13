@@ -1,6 +1,6 @@
 #include <iostream>
-#include "SimillatorController.hpp"
-#include "BusManager.hpp"
+#include "../include/SimillatorController.hpp"
+#include "../include/BusManager.hpp"
 
 int main() {
     BusManager busManager;

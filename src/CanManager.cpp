@@ -1,10 +1,10 @@
-#include "CanManager.hpp"
-#include "FrameCanTP.hpp"
+#include "../include/CanManager.hpp"
+#include "../include/FrameCanTP.hpp"
 #include <iostream>
 #include <thread>
 #include <algorithm>
-#include "BusManager.hpp"
-#include "ID.hpp"
+#include "../include/BusManager.hpp"
+#include "../include/ID.hpp"
 
 std::vector<uint8_t> CanManager::encoder(const std::string& data) {
     return std::vector<uint8_t>(data.begin(), data.end());

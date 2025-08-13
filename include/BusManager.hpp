@@ -5,6 +5,7 @@
 #include <cstdint>
 #include "FrameCAN.hpp"
 
+
 class BusManager {
 public:
     BusManager();
