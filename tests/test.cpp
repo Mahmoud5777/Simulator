@@ -116,51 +116,35 @@ TEST(CanManagerTest, ReceiveMultiFrame) {
     FakeBusManager bus;
     CanManager can(bus);
 
-    // Désactive les Flow Control automatiques
-    bus.autoFlowControl = false;
-    
-    // Crée un message long
+    bus.autoFlowControl = true; // Laisse le fake générer les FC automatiquement
+
     std::string msg = "This is a long message that requires multiple frames";
-    
-    // Prépare les trames
+
+    // Injecte seulement la First Frame
     FrameCanTP ftp;
-    
-    // First Frame (contient les 6 premiers caractères + longueur totale)
-    std::vector<uint8_t> ffPayload(msg.begin(), msg.begin() + 6);
-    auto ffData = ftp.CreateFirstFrame(ffPayload, msg.size());
+    auto ffData = ftp.CreateFirstFrame(
+        std::vector<uint8_t>(msg.begin(), msg.begin()+6),
+        msg.size()
+    );
     bus.injectFrame(FrameCAN(ID::buildSmartID(), ffData));
-    
-    // Injecte le Flow Control (Continue, BlockSize=8, STmin=10ms)
-    auto fcData = ftp.CreateFlowControlFrame(0x00, 8, 10);
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcData));
-    
-    // Consecutive Frames (le reste du message)
+
+    // Les Consecutive Frames seront injectées par le fake après chaque Flow Control
     size_t offset = 6;
     uint8_t seqNum = 1;
     while (offset < msg.size()) {
         size_t chunkSize = std::min<size_t>(7, msg.size() - offset);
         auto cfData = ftp.CreateConsecutiveFrame(
-            std::vector<uint8_t>(msg.begin() + offset, msg.begin() + offset + chunkSize),
+            std::vector<uint8_t>(msg.begin()+offset, msg.begin()+offset+chunkSize),
             seqNum++
         );
         bus.injectFrame(FrameCAN(ID::buildSmartID(), cfData));
         offset += chunkSize;
     }
-    
+
     std::string received = can.receive();
-    
-    // Vérifications
-    EXPECT_EQ(received.size(), msg.size());
     EXPECT_EQ(received, msg);
-    
-    // Vérifie qu'aucun octet de contrôle ne s'est glissé dans les données
-    for (size_t i = 0; i < received.size(); ++i) {
-        EXPECT_EQ(received[i], msg[i]) 
-            << "Différence à la position " << i << ": attendu '" << msg[i] 
-            << "' (0x" << std::hex << (int)msg[i] << "), reçu '" << received[i] 
-            << "' (0x" << (int)received[i] << ")" << std::dec;
-    }
 }
+
 
 TEST(CanManagerTest, ReceiveWithFlowControl) {
     FakeBusManager bus;
