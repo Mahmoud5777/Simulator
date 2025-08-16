@@ -31,7 +31,7 @@ public:
             // Injecte un Flow Control automatique
             FrameCanTP ftp;
             auto fcData = ftp.CreateFlowControlFrame(0x00, blockSize, separationTime);
-            framesToReceive.push(FrameCAN(frame.getId(), fcData));
+            framesToReceive.push(FrameCAN(frame.getFrameID, fcData));
         }
         
         return frame;
@@ -90,7 +90,7 @@ TEST(CanManagerTest, SendMultiFrame) {
     EXPECT_EQ((ffData[0] & 0xF0), 0x10);
     
     // Vérifie la longueur totale
-    uint16_t totalLength = ((ffData[0] & 0x0F) << 8 | ffData[1];
+    uint16_t totalLength = ((ffData[0] & 0x0F) << 8 | ffData[1]);
     EXPECT_EQ(totalLength, msg.size());
 }
 
