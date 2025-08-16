@@ -1,3 +1,4 @@
+
 #include <gtest/gtest.h>
 #include "../include/CanManager.hpp"
 #include "../include/FrameCanTP.hpp"
@@ -31,7 +32,7 @@ public:
             // Injecte un Flow Control automatique
             FrameCanTP ftp;
             auto fcData = ftp.CreateFlowControlFrame(0x00, blockSize, separationTime);
-            framesToReceive.push(FrameCAN(frame.getFrameID, fcData));
+            framesToReceive.push(FrameCAN(frame.getId(), fcData)); // Correction ici: getId() au lieu de getFrameID
         }
         
         return frame;
@@ -41,6 +42,7 @@ public:
         framesToReceive.push(frame);
     }
 };
+
 
 TEST(CanManagerTest, SendSingleFrame) {
     FakeBusManager bus;
