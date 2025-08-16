@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "../include/CanManager.hpp"
+#include "../include/FrameCanTP.hpp"
 #include <vector>
 #include <string>
 #include <queue>
@@ -7,123 +8,175 @@
 class FakeBusManager : public BusManager {
 public:
     std::vector<FrameCAN> sentFrames;
-    std::queue<FrameCAN> framesToReceive; // File d'attente pour les trames à recevoir
-    bool autoRespondWithFlowControl = false;
-    int consecutiveFramesSent = 0;
+    std::queue<FrameCAN> framesToReceive;
+    bool autoFlowControl = true;
+    uint8_t blockSize = 8;
+    uint8_t separationTime = 10;
 
     void send(const FrameCAN &frame) override {
         sentFrames.push_back(frame);
-        
-        if (autoRespondWithFlowControl) {
-            uint8_t pci = frame.getData()[0];
-            if ((pci >> 4) == 0x2) { // C'est une Consecutive Frame
-                consecutiveFramesSent++;
-                if (consecutiveFramesSent % 8 == 0) {
-                    // Ajoute un Flow Control automatique si configuré
-                    FrameCAN fc;
-                    fc.setData({0x30, 0x08, 0x00}); // BlockSize = 8, STmin = 0
-                    framesToReceive.push(fc);
-                }
-            }
-        }
     }
 
     FrameCAN receive() override {
         if (framesToReceive.empty()) {
-            throw std::runtime_error("No frame available to receive");
+            return FrameCAN(ID::buildSmartID(), {}); // Retourne une frame vide
         }
+        
         FrameCAN frame = framesToReceive.front();
         framesToReceive.pop();
+        
+        // Si autoFlowControl est activé et qu'on reçoit une First Frame
+        if (autoFlowControl && !frame.getData().empty() && 
+            ((frame.getData()[0] & 0xF0) == 0x10)) {
+            // Injecte un Flow Control automatique
+            FrameCanTP ftp;
+            auto fcData = ftp.CreateFlowControlFrame(0x00, blockSize, separationTime);
+            framesToReceive.push(FrameCAN(frame.getId(), fcData));
+        }
+        
         return frame;
     }
 
-    // Méthode helper pour injecter des trames
     void injectFrame(const FrameCAN &frame) {
         framesToReceive.push(frame);
     }
 };
 
-TEST(CanManagerTest, ReceiveSingleFrameWithoutFlowControl) {
+TEST(CanManagerTest, SendSingleFrame) {
     FakeBusManager bus;
     CanManager can(bus);
 
-    // Désactive les réponses automatiques pour ce test
-    bus.autoRespondWithFlowControl = false;
+    std::string msg = "Hello";
+    can.send(msg);
 
-    // Injecte une Single Frame directement
-    FrameCAN sf;
-    sf.setData({0x03, 'A', 'B', 'C'});
-    bus.injectFrame(sf);
+    ASSERT_EQ(bus.sentFrames.size(), 1);
+    
+    auto frameData = bus.sentFrames[0].getData();
+    EXPECT_EQ(frameData.size(), msg.size() + 1); // PCI + données
+    
+    // Vérifie que c'est bien une Single Frame
+    EXPECT_EQ((frameData[0] & 0xF0), 0x00);
+    
+    // Vérifie la longueur
+    EXPECT_EQ((frameData[0] & 0x0F), msg.size());
+    
+    // Vérifie le payload
+    std::string payload(frameData.begin() + 1, frameData.end());
+    EXPECT_EQ(payload, msg);
+}
 
+TEST(CanManagerTest, SendMultiFrame) {
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    // Désactive les Flow Control automatiques pour contrôler manuellement
+    bus.autoFlowControl = false;
+    
+    // Crée un message long (plus de 7 caractères)
+    std::string msg(50, 'X'); // 50 caractères 'X'
+    
+    // Injecte un Flow Control manuel
+    FrameCanTP ftp;
+    auto fcData = ftp.CreateFlowControlFrame(0x00, bus.blockSize, bus.separationTime);
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcData));
+    
+    can.send(msg);
+    
+    // Doit avoir au moins 1 First Frame + plusieurs Consecutive Frames
+    ASSERT_GT(bus.sentFrames.size(), 1);
+    
+    // Vérifie la First Frame
+    auto ffData = bus.sentFrames[0].getData();
+    EXPECT_EQ((ffData[0] & 0xF0), 0x10);
+    
+    // Vérifie la longueur totale
+    uint16_t totalLength = ((ffData[0] & 0x0F) << 8 | ffData[1];
+    EXPECT_EQ(totalLength, msg.size());
+}
+
+TEST(CanManagerTest, ReceiveSingleFrame) {
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    // Prépare une Single Frame
+    FrameCanTP ftp;
+    std::string msg = "Test123";
+    auto sfData = ftp.CreateSingleFrame(std::vector<uint8_t>(msg.begin(), msg.end()), msg.size());
+    
+    // Injecte la frame
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), sfData));
+    
     std::string received = can.receive();
-    EXPECT_EQ(received, "ABC");
+    EXPECT_EQ(received, msg);
 }
 
-TEST(CanManagerTest, ReceiveMultiFrameWithManualFlowControl) {
+TEST(CanManagerTest, ReceiveMultiFrame) {
     FakeBusManager bus;
     CanManager can(bus);
 
-    bus.autoRespondWithFlowControl = false; // On contrôle manuellement le flow
-
-    // 1. Injecte la First Frame
-    FrameCAN ff;
-    ff.setData({0x10, 0x0A, 'H', 'e', 'l', 'l', 'o', 'W', 'o'}); // Longueur 10
-    bus.injectFrame(ff);
-
-    // Le CanManager devrait maintenant attendre un Flow Control
-    ASSERT_EQ(bus.sentFrames.size(), 0); // Pas encore de réponse
-
-    // 2. Injecte le Flow Control manuellement
-    FrameCAN fc;
-    fc.setData({0x30, 0x08, 0x00});
-    bus.injectFrame(fc);
-
-    // 3. Injecte les Consecutive Frames
-    FrameCAN cf1;
-    cf1.setData({0x21, 'r', 'l', 'd', '!', 0x00, 0x00, 0x00}); // Séquence 1
-    bus.injectFrame(cf1);
-
-    std::string result = can.receive();
-    EXPECT_TRUE(result.empty()); // Le message n'est pas encore complet
-
-    // Pas besoin de nouveau Flow Control car < 8 CF
-
-    FrameCAN cf2;
-    cf2.setData({0x22, 0x00, 0x00}); // Séquence 2 (vide)
-    bus.injectFrame(cf2);
-
-    result = can.receive();
-    EXPECT_EQ(result, "HelloWorld!");
-}
-
-TEST(CanManagerTest, ReceiveWithAutomaticFlowControl) {
-    FakeBusManager bus;
-    CanManager can(bus);
-
-    bus.autoRespondWithFlowControl = true; // Active les réponses automatiques
-
-    // 1. Injecte la First Frame
-    FrameCAN ff;
-    ff.setData({0x10, 0x20, 
-                '1', '2', '3', '4', '5', '6', '7'}); // Longueur 32
-    bus.injectFrame(ff);
-
-    // 2. Le CanManager enverra un Flow Control automatique
-    // (géré par la file d'attente interne)
-
-    // 3. Injecte 8 Consecutive Frames
-    for (int i = 0; i < 8; i++) {
-        FrameCAN cf;
-        std::vector<uint8_t> data = {static_cast<uint8_t>(0x20 | (i+1))};
-        data.resize(8, 'A' + i);
-        cf.setData(data);
-        bus.injectFrame(cf);
+    // Désactive les Flow Control automatiques
+    bus.autoFlowControl = false;
+    
+    // Crée un message long
+    std::string msg = "This is a long message that requires multiple frames";
+    
+    // Prépare les trames
+    FrameCanTP ftp;
+    
+    // First Frame
+    auto ffData = ftp.CreateFirstFrame(std::vector<uint8_t>(msg.begin(), msg.begin()+6), msg.size());
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), ffData));
+    
+    // Injecte le Flow Control
+    auto fcData = ftp.CreateFlowControlFrame(0x00, bus.blockSize, bus.separationTime);
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcData));
+    
+    // Consecutive Frames
+    size_t offset = 6;
+    uint8_t seqNum = 1;
+    while (offset < msg.size()) {
+        size_t chunkSize = std::min<size_t>(7, msg.size() - offset);
+        auto cfData = ftp.CreateConsecutiveFrame(
+            std::vector<uint8_t>(msg.begin()+offset, msg.begin()+offset+chunkSize),
+            seqNum++
+        );
+        bus.injectFrame(FrameCAN(ID::buildSmartID(), cfData));
+        offset += chunkSize;
     }
+    
+    std::string received = can.receive();
+    EXPECT_EQ(received, msg);
+}
 
-    // Le FakeBusManager devrait avoir ajouté automatiquement un Flow Control
-    ASSERT_FALSE(bus.framesToReceive.empty());
+TEST(CanManagerTest, ReceiveWithFlowControl) {
+    FakeBusManager bus;
+    CanManager can(bus);
 
-    // Continuer avec d'autres trames si nécessaire...
+    // Active les Flow Control automatiques
+    bus.autoFlowControl = true;
+    
+    std::string msg = "Another long message for flow control testing";
+    
+    // Injecte juste la First Frame, le reste sera géré automatiquement
+    FrameCanTP ftp;
+    auto ffData = ftp.CreateFirstFrame(std::vector<uint8_t>(msg.begin(), msg.begin()+6), msg.size());
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), ffData));
+    
+    // Injecte les Consecutive Frames
+    size_t offset = 6;
+    uint8_t seqNum = 1;
+    while (offset < msg.size()) {
+        size_t chunkSize = std::min<size_t>(7, msg.size() - offset);
+        auto cfData = ftp.CreateConsecutiveFrame(
+            std::vector<uint8_t>(msg.begin()+offset, msg.begin()+offset+chunkSize),
+            seqNum++
+        );
+        bus.injectFrame(FrameCAN(ID::buildSmartID(), cfData));
+        offset += chunkSize;
+    }
+    
+    std::string received = can.receive();
+    EXPECT_EQ(received, msg);
 }
 
 int main(int argc, char **argv) {
