@@ -19,10 +19,6 @@ public:
     FrameCAN receive() override {
         return frameToReceive;
     }
-
-    bool createVCAN() override { return true; }
-    bool init() override { return true; }
-    void closeSocket() override {}
 };
 
 // --- Test unitaire : envoi d'une Single Frame ---
@@ -30,26 +26,43 @@ TEST(CanManagerTest, SendSingleFrame) {
     FakeBusManager bus;
     CanManager can(bus);
 
-    std::string msg = "ABC";            // Petit message → SF
+    std::string msg = "ABC";   // Petit message → SF
     can.send(msg);
 
-    ASSERT_EQ(bus.sentFrames.size(), 1);           
-    EXPECT_EQ(bus.sentFrames[0].getData().size(), msg.size()); // utilisation de getData()
+    ASSERT_EQ(bus.sentFrames.size(), 1);
+
+    auto data = bus.sentFrames[0].getData();
+
+    // Vérifie que la SF a 1 octet PCI + données
+    ASSERT_EQ(data.size(), msg.size() + 1);
+
+    // Vérifie que le payload correspond au message
+    std::string payload(data.begin() + 1, data.end());
+    EXPECT_EQ(payload, msg);
 }
 
-// --- Test unitaire : envoi d'un message long (First Frame + Consecutive Frames) ---
+// --- Test unitaire : envoi d'un message long (FF + CF) ---
 TEST(CanManagerTest, SendMultiFrame) {
     FakeBusManager bus;
     CanManager can(bus);
 
-    std::string msg = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // Long message → FF + CF
+    std::string msg = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // 26 caractères → FF + CF
     can.send(msg);
 
     ASSERT_GT(bus.sentFrames.size(), 1);
-    EXPECT_EQ(bus.sentFrames[0].getData()[0], msg.size()); // First Frame contient la taille
 
+    auto firstFrame = bus.sentFrames[0].getData();
+
+    // Vérifie que c'est bien un First Frame (0x1x en haut)
+    EXPECT_EQ(firstFrame[0] >> 4, 0x1);
+
+    // Récupère la longueur encodée dans FF
+    int len = ((firstFrame[0] & 0x0F) << 8) | firstFrame[1];
+    EXPECT_EQ(len, msg.size());
+
+    // Vérifie que les CF contiennent ≤7 octets
     for (size_t i = 1; i < bus.sentFrames.size(); ++i) {
-        EXPECT_LE(bus.sentFrames[i].getData().size(), 7);  // Chaque CF ≤7 octets
+        EXPECT_LE(bus.sentFrames[i].getData().size(), 8);
     }
 }
 
@@ -57,15 +70,15 @@ TEST(CanManagerTest, SendMultiFrame) {
 TEST(CanManagerTest, ReceiveMessage) {
     FakeBusManager bus;
 
-    // Simule la trame à recevoir
+    // Simule la trame à recevoir (Single Frame)
     FrameCAN frame;
-    frame.setData({'H','e','l','l','o'});  // utilisation de setData()
+    frame.setData({'\x03','H','e','y'}); // PCI=0x03, payload="Hey"
     bus.frameToReceive = frame;
 
     CanManager can(bus);
     std::string msg = can.receive();
 
-    EXPECT_EQ(msg, "Hello");
+    EXPECT_EQ(msg, "Hey");
 }
 
 // --- Test unitaire : cycle complet send + receive simplifié ---
@@ -75,6 +88,8 @@ TEST(CanManagerTest, SendAndReceiveCycle) {
 
     std::string original = "CAN TP Test";
     can.send(original);
+
+    ASSERT_FALSE(bus.sentFrames.empty());
 
     // Simule la réception de la première trame envoyée
     bus.frameToReceive = bus.sentFrames[0];
