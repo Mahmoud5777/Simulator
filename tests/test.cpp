@@ -190,6 +190,71 @@ TEST(CanManagerTest, ReceiveWithFlowControl) {
     EXPECT_EQ(received, msg);
 }
 
+TEST(CanManagerTest, SendWithFlowControlStop) {
+    CoutSilencer silence;
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    bus.autoFlowControl = false; // On contrôle manuellement
+
+    std::string msg(20, 'A'); // message long > 7 octets
+
+    FrameCanTP ftp;
+
+    // Injecte la première Flow Control : STOP
+    auto fcStopData = ftp.CreateFlowControlFrame(0x31, 0, 0); // FC=Stop
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcStopData));
+
+    // Ensuite injecte une Flow Control continue pour permettre de reprendre
+    auto fcContinueData = ftp.CreateFlowControlFrame(0x30, 8, 0);
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcContinueData));
+
+    // Envoi du message
+    can.send(msg);
+
+    // Vérifie que toutes les trames ont été envoyées correctement
+    ASSERT_GT(bus.sentFrames.size(), 1);
+
+    // Vérifie que le premier bloc a bien été envoyé avant le STOP
+    EXPECT_EQ(bus.sentFrames[0].getData()[0] >> 4, 0x1); // First Frame
+}
+
+TEST(CanManagerTest, SendWithFlowControlAbort) {
+    CoutSilencer silence;
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    bus.autoFlowControl = false; // On contrôle manuellement
+
+    std::string msg(20, 'E'); // Message long > 7 octets
+    FrameCanTP ftp;
+
+    // Crée une Flow Control d’erreur (Abort)
+    auto fcAbortData = ftp.CreateFlowControlFrame(0x32, 0, 0); // 0x32 = Abort/Error
+    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcAbortData));
+
+    // Envoie du message
+    can.send(msg);
+
+    // Vérifie que seulement la First Frame a été envoyée
+    ASSERT_EQ(bus.sentFrames.size(), 1);
+
+    // Vérifie que c’est bien une First Frame
+    auto ffData = bus.sentFrames[0].getData();
+    EXPECT_EQ((ffData[0] & 0xF0), 0x10);
+
+    // Optionnel : capturer le message "Transmission aborted !!"
+    std::ostringstream oss;
+    std::streambuf* oldCout = std::cout.rdbuf(oss.rdbuf());
+    can.send(msg); // renvoyer pour capturer la sortie
+    std::cout.rdbuf(oldCout);
+    std::string output = oss.str();
+    EXPECT_NE(output.find("Transmission aborted !!"), std::string::npos);
+}
+
+
+
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
