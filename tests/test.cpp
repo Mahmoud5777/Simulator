@@ -2,6 +2,7 @@
 #include "../include/CanManager.hpp"
 #include <vector>
 #include <string>
+#include <queue>
 
 // --- FakeBusManager pour simuler l'envoi et la réception sur un bus CAN ---
 class FakeBusManager : public BusManager {
@@ -19,16 +20,12 @@ public:
             recvQueue.pop();
             return f;
         }
-        return FrameCAN(); // vide si rien à recevoir
+        return FrameCAN();
     }
 
     void injectFrame(const FrameCAN& frame) {
         recvQueue.push(frame);
     }
-
-    bool createVCAN() override { return true; }
-    bool init() override { return true; }
-    void closeSocket() override {}
 };
 
 // --- Test unitaire : envoi d'une Single Frame ---
