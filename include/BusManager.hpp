@@ -9,11 +9,11 @@
 class BusManager {
 public:
     BusManager();
-    ~BusManager();
+    virtual ~BusManager();
     bool createVCAN();
     bool init();
-    void send(const FrameCAN &frame);
-    FrameCAN receive();
+    virtual void send(const FrameCAN &frame);
+    virtual FrameCAN receive();
     void closeSocket();
 
 private:
