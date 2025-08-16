@@ -43,8 +43,17 @@ public:
     }
 };
 
+struct CoutSilencer {
+    std::streambuf* oldCout;
+    std::ostringstream oss;
+    CoutSilencer() { oldCout = std::cout.rdbuf(oss.rdbuf()); }
+    ~CoutSilencer() { std::cout.rdbuf(oldCout); }
+};
+
+
 
 TEST(CanManagerTest, SendSingleFrame) {
+    CoutSilencer silence;
     FakeBusManager bus;
     CanManager can(bus);
 
@@ -68,6 +77,7 @@ TEST(CanManagerTest, SendSingleFrame) {
 }
 
 TEST(CanManagerTest, SendMultiFrame) {
+    CoutSilencer silence;
     FakeBusManager bus;
     CanManager can(bus);
 
@@ -97,6 +107,7 @@ TEST(CanManagerTest, SendMultiFrame) {
 }
 
 TEST(CanManagerTest, ReceiveSingleFrame) {
+    CoutSilencer silence;
     FakeBusManager bus;
     CanManager can(bus);
 
@@ -113,6 +124,7 @@ TEST(CanManagerTest, ReceiveSingleFrame) {
 }
 
 TEST(CanManagerTest, ReceiveMultiFrame) {
+    CoutSilencer silence;
     FakeBusManager bus;
     CanManager can(bus);
 
@@ -147,6 +159,7 @@ TEST(CanManagerTest, ReceiveMultiFrame) {
 
 
 TEST(CanManagerTest, ReceiveWithFlowControl) {
+    CoutSilencer silence;
     FakeBusManager bus;
     CanManager can(bus);
 
