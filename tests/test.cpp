@@ -2,29 +2,19 @@
 #include "../include/CanManager.hpp"
 #include <vector>
 #include <string>
-#include <queue>
 
 // --- FakeBusManager pour simuler l'envoi et la réception sur un bus CAN ---
 class FakeBusManager : public BusManager {
 public:
     std::vector<FrameCAN> sentFrames;  // Stocke toutes les trames envoyées
-    std::queue<FrameCAN> recvQueue;    // Queue de trames à recevoir
+    FrameCAN frameToReceive;            // Trame à recevoir (Flow Control ou message)
 
     void send(const FrameCAN &frame) override {
         sentFrames.push_back(frame);
     }
 
     FrameCAN receive() override {
-        if (!recvQueue.empty()) {
-            FrameCAN f = recvQueue.front();
-            recvQueue.pop();
-            return f;
-        }
-        return FrameCAN();
-    }
-
-    void injectFrame(const FrameCAN& frame) {
-        recvQueue.push(frame);
+        return frameToReceive; // retourne la trame injectée
     }
 };
 
@@ -45,7 +35,7 @@ TEST(CanManagerTest, SendSingleFrame) {
     EXPECT_EQ(payload, msg);
 }
 
-// --- Test unitaire : envoi d'un message long (FF + CF) avec Flow Control fake ---
+// --- Test unitaire : envoi d'un message long (FF + CF) avec Flow Control simulé ---
 TEST(CanManagerTest, SendMultiFrame) {
     FakeBusManager bus;
     CanManager can(bus);
@@ -53,10 +43,12 @@ TEST(CanManagerTest, SendMultiFrame) {
     std::string msg;
     for (char c = 'A'; c <= 'Z'; ++c) msg.push_back(c); // 26 caractères
 
-    // Injecter Flow Control pour permettre l'envoi complet
-    FrameCAN fc;
-    fc.setData({0x30, 0x00, 0x00}); // FC: Continue To Send
-    bus.injectFrame(fc);
+    // Crée une trame Flow Control simulée
+    FrameCAN fakeFC;
+    fakeFC.setData({0x30, 0x00, 0x00}); // 0x30 = Flow Control, 0x00 = block size, 0x00 = STmin
+
+    // Injecte-la dans le bus simulé
+    bus.frameToReceive = fakeFC;
 
     can.send(msg);
 
@@ -80,7 +72,7 @@ TEST(CanManagerTest, ReceiveMessage) {
 
     FrameCAN frame;
     frame.setData({'\x03','H','e','y'}); // PCI=0x03, payload="Hey"
-    bus.injectFrame(frame);
+    bus.frameToReceive = frame;
 
     CanManager can(bus);
     std::string msg = can.receive();
@@ -95,17 +87,17 @@ TEST(CanManagerTest, SendAndReceiveCycle) {
 
     std::string original = "CAN TP Test";
 
-    // Injecter un Flow Control pour le send
-    FrameCAN fc;
-    fc.setData({0x30, 0x00, 0x00});
-    bus.injectFrame(fc);
+    // Crée un Flow Control simulé
+    FrameCAN fakeFC;
+    fakeFC.setData({0x30, 0x00, 0x00});
+    bus.frameToReceive = fakeFC;
 
     can.send(original);
 
     ASSERT_FALSE(bus.sentFrames.empty());
 
     // Simule la réception de la première trame envoyée
-    bus.injectFrame(bus.sentFrames[0]);
+    bus.frameToReceive = bus.sentFrames[0];
     std::string received = can.receive();
 
     EXPECT_FALSE(received.empty());
