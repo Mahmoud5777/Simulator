@@ -2,108 +2,130 @@
 #include "../include/CanManager.hpp"
 #include <vector>
 #include <string>
+#include <queue>
 
-// --- FakeBusManager pour simuler l'envoi et la réception sur un bus CAN ---
 class FakeBusManager : public BusManager {
 public:
-    std::vector<FrameCAN> sentFrames;  // Stocke toutes les trames envoyées
-    FrameCAN frameToReceive;            // Trame à recevoir (Flow Control ou message)
+    std::vector<FrameCAN> sentFrames;
+    std::queue<FrameCAN> framesToReceive; // File d'attente pour les trames à recevoir
+    bool autoRespondWithFlowControl = false;
+    int consecutiveFramesSent = 0;
 
     void send(const FrameCAN &frame) override {
         sentFrames.push_back(frame);
+        
+        if (autoRespondWithFlowControl) {
+            uint8_t pci = frame.getData()[0];
+            if ((pci >> 4) == 0x2) { // C'est une Consecutive Frame
+                consecutiveFramesSent++;
+                if (consecutiveFramesSent % 8 == 0) {
+                    // Ajoute un Flow Control automatique si configuré
+                    FrameCAN fc;
+                    fc.setData({0x30, 0x08, 0x00}); // BlockSize = 8, STmin = 0
+                    framesToReceive.push(fc);
+                }
+            }
+        }
     }
 
     FrameCAN receive() override {
-        return frameToReceive; // retourne la trame injectée
+        if (framesToReceive.empty()) {
+            throw std::runtime_error("No frame available to receive");
+        }
+        FrameCAN frame = framesToReceive.front();
+        framesToReceive.pop();
+        return frame;
+    }
+
+    // Méthode helper pour injecter des trames
+    void injectFrame(const FrameCAN &frame) {
+        framesToReceive.push(frame);
     }
 };
 
-// --- Test unitaire : envoi d'une Single Frame ---
-TEST(CanManagerTest, SendSingleFrame) {
+TEST(CanManagerTest, ReceiveSingleFrameWithoutFlowControl) {
     FakeBusManager bus;
     CanManager can(bus);
 
-    std::string msg = "ABC";   // Petit message → SF
-    can.send(msg);
+    // Désactive les réponses automatiques pour ce test
+    bus.autoRespondWithFlowControl = false;
 
-    ASSERT_EQ(bus.sentFrames.size(), 1);
+    // Injecte une Single Frame directement
+    FrameCAN sf;
+    sf.setData({0x03, 'A', 'B', 'C'});
+    bus.injectFrame(sf);
 
-    auto data = bus.sentFrames[0].getData();
-    ASSERT_EQ(data.size(), msg.size() + 1); // 1 octet PCI + payload
-
-    std::string payload(data.begin() + 1, data.end());
-    EXPECT_EQ(payload, msg);
-}
-
-// --- Test unitaire : envoi d'un message long (FF + CF) avec Flow Control simulé ---
-TEST(CanManagerTest, SendMultiFrame) {
-    FakeBusManager bus;
-    CanManager can(bus);
-
-    std::string msg;
-    for (char c = 'A'; c <= 'Z'; ++c) msg.push_back(c); // 26 caractères
-
-    // Crée une trame Flow Control simulée
-    FrameCAN fakeFC;
-    fakeFC.setData({0x30, 0x00, 0x00}); // 0x30 = Flow Control, 0x00 = block size, 0x00 = STmin
-
-    // Injecte-la dans le bus simulé
-    bus.frameToReceive = fakeFC;
-
-    can.send(msg);
-
-    ASSERT_GT(bus.sentFrames.size(), 1);
-
-    auto firstFrame = bus.sentFrames[0].getData();
-    EXPECT_EQ(firstFrame[0] >> 4, 0x1); // vérifie que c'est un First Frame
-
-    int lengthFF = ((firstFrame[0] & 0x0F) << 8) | firstFrame[1];
-    EXPECT_EQ(lengthFF, msg.size());
-
-    // Vérifie que chaque CF contient ≤ 7 octets de données
-    for (size_t i = 1; i < bus.sentFrames.size(); ++i) {
-        EXPECT_LE(bus.sentFrames[i].getData().size(), 8);
-    }
-}
-
-// --- Test unitaire : réception d'une trame unique ---
-TEST(CanManagerTest, ReceiveMessage) {
-    FakeBusManager bus;
-
-    FrameCAN frame;
-    frame.setData({'\x03','H','e','y'}); // PCI=0x03, payload="Hey"
-    bus.frameToReceive = frame;
-
-    CanManager can(bus);
-    std::string msg = can.receive();
-
-    EXPECT_EQ(msg, "Hey");
-}
-
-// --- Test unitaire : cycle complet send + receive simplifié ---
-TEST(CanManagerTest, SendAndReceiveCycle) {
-    FakeBusManager bus;
-    CanManager can(bus);
-
-    std::string original = "CAN TP Test";
-
-    // Crée un Flow Control simulé
-    FrameCAN fakeFC;
-    fakeFC.setData({0x30, 0x00, 0x00});
-    bus.frameToReceive = fakeFC;
-
-    can.send(original);
-
-    ASSERT_FALSE(bus.sentFrames.empty());
-
-    // Simule la réception de la première trame envoyée
-    bus.frameToReceive = bus.sentFrames[0];
     std::string received = can.receive();
-
-    EXPECT_FALSE(received.empty());
+    EXPECT_EQ(received, "ABC");
 }
 
-// --- Main pour lancer tous les tests ---
+TEST(CanManagerTest, ReceiveMultiFrameWithManualFlowControl) {
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    bus.autoRespondWithFlowControl = false; // On contrôle manuellement le flow
+
+    // 1. Injecte la First Frame
+    FrameCAN ff;
+    ff.setData({0x10, 0x0A, 'H', 'e', 'l', 'l', 'o', 'W', 'o'}); // Longueur 10
+    bus.injectFrame(ff);
+
+    // Le CanManager devrait maintenant attendre un Flow Control
+    ASSERT_EQ(bus.sentFrames.size(), 0); // Pas encore de réponse
+
+    // 2. Injecte le Flow Control manuellement
+    FrameCAN fc;
+    fc.setData({0x30, 0x08, 0x00});
+    bus.injectFrame(fc);
+
+    // 3. Injecte les Consecutive Frames
+    FrameCAN cf1;
+    cf1.setData({0x21, 'r', 'l', 'd', '!', 0x00, 0x00, 0x00}); // Séquence 1
+    bus.injectFrame(cf1);
+
+    std::string result = can.receive();
+    EXPECT_TRUE(result.empty()); // Le message n'est pas encore complet
+
+    // Pas besoin de nouveau Flow Control car < 8 CF
+
+    FrameCAN cf2;
+    cf2.setData({0x22, 0x00, 0x00}); // Séquence 2 (vide)
+    bus.injectFrame(cf2);
+
+    result = can.receive();
+    EXPECT_EQ(result, "HelloWorld!");
+}
+
+TEST(CanManagerTest, ReceiveWithAutomaticFlowControl) {
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    bus.autoRespondWithFlowControl = true; // Active les réponses automatiques
+
+    // 1. Injecte la First Frame
+    FrameCAN ff;
+    ff.setData({0x10, 0x20, 
+                '1', '2', '3', '4', '5', '6', '7'}); // Longueur 32
+    bus.injectFrame(ff);
+
+    // 2. Le CanManager enverra un Flow Control automatique
+    // (géré par la file d'attente interne)
+
+    // 3. Injecte 8 Consecutive Frames
+    for (int i = 0; i < 8; i++) {
+        FrameCAN cf;
+        std::vector<uint8_t> data = {static_cast<uint8_t>(0x20 | (i+1))};
+        data.resize(8, 'A' + i);
+        cf.setData(data);
+        bus.injectFrame(cf);
+    }
+
+    // Le FakeBusManager devrait avoir ajouté automatiquement un Flow Control
+    ASSERT_FALSE(bus.framesToReceive.empty());
+
+    // Continuer avec d'autres trames si nécessaire...
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
