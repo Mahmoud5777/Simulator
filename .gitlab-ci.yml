@@ -21,13 +21,13 @@ cppcheck_analysis:
   #before_script:
  #   - apt-get update -qq && apt-get install -y -qq clang-tidy python3 jq
  # script:
-  #  - echo "📁 Répertoire actuel :"
+  #  - echo " Répertoire actuel :"
    # - pwd
-    #- echo "📂 Liste des fichiers :"
+    #- echo " Liste des fichiers :"
     #- ls -R
 
     #- |
-     # echo "⚙️ Génération de compile_commands.json..."
+     # echo " Génération de compile_commands.json..."
       #find . -name '*.cpp' | while read -r file; do
        # echo '{
         #  "directory": "'$(pwd)'",
@@ -36,22 +36,22 @@ cppcheck_analysis:
         #}'
       #done | jq -s '.' > compile_commands.json
 
-   # - echo "📄 Aperçu du compile_commands.json :"
+   # - echo " Aperçu du compile_commands.json :"
    # - head -n 5 compile_commands.json
    # - echo "... (truncated)"
 
     #- |
      # if [ -s "compile_commands.json" ]; then
-      #  echo "🚀 Lancement de clang-tidy..."
+      #  echo " Lancement de clang-tidy..."
        # find . -name '*.cpp' -exec clang-tidy -p . {} + > clang-tidy.log 2>&1 || true
      # else
       #  echo "Aucun fichier .cpp trouvé !" > clang-tidy.log
      # fi
 
-   # - echo "📄 Résultats complets de clang-tidy :"
+   # - echo " Résultats complets de clang-tidy :"
    # - cat clang-tidy.log || echo "Aucune erreur détectée."
 
-   # - echo "🧪 Fin de l’analyse clang-tidy."
+   # - echo " Fin de l’analyse clang-tidy."
 
  # artifacts:
   #  when: always

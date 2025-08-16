@@ -1,51 +1,90 @@
+// test.cpp
 #include <gtest/gtest.h>
-#include "../include/ID.hpp"  // Chemin vers ton header
+#include "../include/CanManager.hpp"
+#include <vector>
+#include <string>
 
-// Test constructeur avec valeurs explicites
-TEST(IDTest, ConstructorExplicit) {
-    ID id1(0x123, false);
-    EXPECT_EQ(id1.getID(), 0x123);
-    EXPECT_FALSE(id1.isExtended());
+// --- FakeBusManager pour simuler l'envoi et la réception sur un bus CAN ---
+class FakeBusManager : public BusManager {
+public:
+    std::vector<FrameCAN> sentFrames;  // Stocke toutes les trames envoyées
+    FrameCAN frameToReceive;            // Frame simulée à recevoir
 
-    ID id2(0x18ABCDEF, true);
-    EXPECT_EQ(id2.getID(), 0x18ABCDEF);
-    EXPECT_TRUE(id2.isExtended());
+    // Redéfinition de send pour capturer les trames au lieu de les envoyer sur le socket
+    void send(const FrameCAN &frame) override {
+        sentFrames.push_back(frame);
+    }
+
+    // Redéfinition de receive pour retourner une trame simulée
+    FrameCAN receive() override {
+        return frameToReceive;
+    }
+
+    // Les autres méthodes (createVCAN, init, closeSocket) peuvent rester vides pour le test
+    bool createVCAN() override { return true; }
+    bool init() override { return true; }
+    void closeSocket() override {}
+};
+
+// --- Test unitaire : envoi d'une Single Frame ---
+TEST(CanManagerTest, SendSingleFrame) {
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    std::string msg = "ABC";            // Petit message → SF
+    can.send(msg);                      // Appel de la méthode send
+
+    ASSERT_EQ(bus.sentFrames.size(), 1);           // Vérifie qu'une seule trame a été envoyée
+    EXPECT_EQ(bus.sentFrames[0].data.size(), msg.size()); // Vérifie la taille de la trame
 }
 
-// Test constructeur avec déduction automatique (is_extended dépend de l'ID)
-TEST(IDTest, ConstructorAutoExtended) {
-    ID id1(0x123); // inf. à 0x7FF → standard
-    EXPECT_FALSE(id1.isExtended());
+// --- Test unitaire : envoi d'un message long (First Frame + Consecutive Frames) ---
+TEST(CanManagerTest, SendMultiFrame) {
+    FakeBusManager bus;
+    CanManager can(bus);
 
-    ID id2(0x800); // sup. à 0x7FF → extended
-    EXPECT_TRUE(id2.isExtended());
-}
+    std::string msg = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // Long message → FF + CF
+    can.send(msg);
 
-// Test set()
-TEST(IDTest, SetMethod) {
-    ID id(0x123, false);
-    id.set(0x18FEDF00);
-    EXPECT_EQ(id.getID(), 0x18FEDF00);
-    EXPECT_TRUE(id.isExtended());
+    ASSERT_GT(bus.sentFrames.size(), 1);            // Vérifie qu'il y a plusieurs trames
+    EXPECT_EQ(bus.sentFrames[0].data[0], msg.size()); // First Frame contient la taille totale
 
-    id.set(0x700);
-    EXPECT_EQ(id.getID(), 0x700);
-    EXPECT_FALSE(id.isExtended());
-}
-
-// Test buildSmartID() (random → on teste juste les propriétés)
-TEST(IDTest, BuildSmartID) {
-    ID smartId = ID::buildSmartID();
-    uint32_t val = smartId.getID();
-    if (val <= 0x7FF) {
-        EXPECT_FALSE(smartId.isExtended());
-    } else {
-        EXPECT_TRUE(smartId.isExtended());
+    for (size_t i = 1; i < bus.sentFrames.size(); ++i) {
+        EXPECT_LE(bus.sentFrames[i].data.size(), 7);  // Chaque Consecutive Frame ≤7 octets
     }
 }
 
-// Point d’entrée
+// --- Test unitaire : réception d'une trame unique ---
+TEST(CanManagerTest, ReceiveMessage) {
+    FakeBusManager bus;
+    // Simule la trame à recevoir
+    FrameCAN frame;
+    frame.data = {'H','e','l','l','o'};
+    bus.frameToReceive = frame;
+
+    CanManager can(bus);
+    std::string msg = can.receive();               // Appel de receive
+
+    EXPECT_EQ(msg, "Hello");                       // Vérifie que le message décodé est correct
+}
+
+// --- Test unitaire : cycle complet send + receive simplifié ---
+TEST(CanManagerTest, SendAndReceiveCycle) {
+    FakeBusManager bus;
+    CanManager can(bus);
+
+    std::string original = "CAN TP Test";
+    can.send(original);                            // Envoi d'un message
+
+    // Simule la réception de la première trame envoyée
+    bus.frameToReceive = bus.sentFrames[0];
+    std::string received = can.receive();
+
+    EXPECT_FALSE(received.empty());                // Vérifie que le message reçu n’est pas vide
+}
+
+// --- Main pour lancer tous les tests ---
 int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    ::testing::InitGoogleTest(&argc, argv);       // Initialise Google Test
+    return RUN_ALL_TESTS();                        // Exécute tous les tests
 }
