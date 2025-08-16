@@ -225,16 +225,23 @@ TEST(CanManagerTest, SendWithFlowControlAbort) {
     CanManager can(bus);
 
     bus.autoFlowControl = false; // On contrôle manuellement
-
-    std::string msg(20, 'E'); // Message long > 7 octets
+    std::string msg(20, 'E');    // Message long > 7 octets
     FrameCanTP ftp;
 
     // Crée une Flow Control d’erreur (Abort)
     auto fcAbortData = ftp.CreateFlowControlFrame(0x32, 0, 0); // 0x32 = Abort/Error
     bus.injectFrame(FrameCAN(ID::buildSmartID(), fcAbortData));
 
-    // Envoie du message
+    // Capture std::cout avant d’envoyer
+    std::ostringstream oss;
+    std::streambuf* oldCout = std::cout.rdbuf(oss.rdbuf());
+
+    // Envoie du message (une seule fois)
     can.send(msg);
+
+    // Restaure std::cout
+    std::cout.rdbuf(oldCout);
+    std::string output = oss.str();
 
     // Vérifie que seulement la First Frame a été envoyée
     ASSERT_EQ(bus.sentFrames.size(), 1);
@@ -243,14 +250,10 @@ TEST(CanManagerTest, SendWithFlowControlAbort) {
     auto ffData = bus.sentFrames[0].getData();
     EXPECT_EQ((ffData[0] & 0xF0), 0x10);
 
-    // Optionnel : capturer le message "Transmission aborted !!"
-    std::ostringstream oss;
-    std::streambuf* oldCout = std::cout.rdbuf(oss.rdbuf());
-    can.send(msg); // renvoyer pour capturer la sortie
-    std::cout.rdbuf(oldCout);
-    std::string output = oss.str();
+    // Vérifie que le message d’abort a été affiché
     EXPECT_NE(output.find("Transmission aborted !!"), std::string::npos);
 }
+
 
 
 
