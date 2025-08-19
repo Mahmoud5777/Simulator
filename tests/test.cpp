@@ -48,6 +48,7 @@ struct CoutSilencer {
     std::ostringstream oss;
     CoutSilencer() { oldCout = std::cout.rdbuf(oss.rdbuf()); }
     ~CoutSilencer() { std::cout.rdbuf(oldCout); }
+     std::string getOutput() const { return oss.str(); }
 };
 
 TEST(CanManagerTest, SendSingleFrame) {
@@ -155,7 +156,7 @@ TEST(CanManagerTest, ReceiveMultiFrame) {
     EXPECT_EQ(received, msg);
 }
 
-TEST(CanManagerTest, SendWithFlowControlStop) {
+TEST(CanManagerTest, SendWithFlowControlwait) {
     CoutSilencer silence;
     FakeBusManager bus;
     CanManager can(bus);
@@ -183,10 +184,17 @@ TEST(CanManagerTest, SendWithFlowControlStop) {
     // Vérifie que le premier bloc a bien été envoyé avant le STOP
     EXPECT_EQ(bus.sentFrames[0].getData()[0] >> 4, 0x1); // First Frame
     std::string reassembled;
+    bool firstFrame = true;
     for (const auto& frame : bus.sentFrames) {
         auto data = frame.getData();
-        // saute le premier octet de contrôle (PCI), garde le reste
-        if (!data.empty()) {
+        if (data.empty()) continue;
+
+        if (firstFrame) {
+            // La First Frame a 2 octets de contrôle pour un message > 7 octets
+            reassembled.append(data.begin() + 2, data.end());
+            firstFrame = false;
+        } else {
+            // Les Consecutive Frames ont 1 octet de PCI
             reassembled.append(data.begin() + 1, data.end());
         }
     }
@@ -208,6 +216,7 @@ TEST(CanManagerTest, SendWithFlowControlAbort) {
     bus.injectFrame(FrameCAN(ID::buildSmartID(), fcAbortData));
     // Envoie du message (une seule fois)
     can.send(msg);
+    std::string output = silence.getOutput();
     // Vérifie que seulement la First Frame a été envoyée
     ASSERT_EQ(bus.sentFrames.size(), 1);
 
