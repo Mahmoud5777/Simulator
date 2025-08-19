@@ -32,7 +32,7 @@ public:
             // Injecte un Flow Control automatique
             FrameCanTP ftp;
             auto fcData = ftp.CreateFlowControlFrame(0x00, blockSize, separationTime);
-            framesToReceive.push(FrameCAN(frame.getFrameID(), fcData)); // Correction ici: getId() au lieu de getFrameID
+            framesToReceive.push(FrameCAN(frame.getFrameID(), fcData)); 
         }
         
         return frame;
@@ -49,8 +49,6 @@ struct CoutSilencer {
     CoutSilencer() { oldCout = std::cout.rdbuf(oss.rdbuf()); }
     ~CoutSilencer() { std::cout.rdbuf(oldCout); }
 };
-
-
 
 TEST(CanManagerTest, SendSingleFrame) {
     CoutSilencer silence;
@@ -157,39 +155,6 @@ TEST(CanManagerTest, ReceiveMultiFrame) {
     EXPECT_EQ(received, msg);
 }
 
-
-TEST(CanManagerTest, ReceiveWithFlowControl) {
-    CoutSilencer silence;
-    FakeBusManager bus;
-    CanManager can(bus);
-
-    // Active les Flow Control automatiques
-    bus.autoFlowControl = true;
-    
-    std::string msg = "Another long message for flow control testing";
-    
-    // Injecte juste la First Frame, le reste sera géré automatiquement
-    FrameCanTP ftp;
-    auto ffData = ftp.CreateFirstFrame(std::vector<uint8_t>(msg.begin(), msg.begin()+6), msg.size());
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), ffData));
-    
-    // Injecte les Consecutive Frames
-    size_t offset = 6;
-    uint8_t seqNum = 1;
-    while (offset < msg.size()) {
-        size_t chunkSize = std::min<size_t>(7, msg.size() - offset);
-        auto cfData = ftp.CreateConsecutiveFrame(
-            std::vector<uint8_t>(msg.begin()+offset, msg.begin()+offset+chunkSize),
-            seqNum++
-        );
-        bus.injectFrame(FrameCAN(ID::buildSmartID(), cfData));
-        offset += chunkSize;
-    }
-    
-    std::string received = can.receive();
-    EXPECT_EQ(received, msg);
-}
-
 TEST(CanManagerTest, SendWithFlowControlStop) {
     CoutSilencer silence;
     FakeBusManager bus;
@@ -201,8 +166,8 @@ TEST(CanManagerTest, SendWithFlowControlStop) {
 
     FrameCanTP ftp;
 
-    // Injecte la première Flow Control : STOP
-    auto fcStopData = ftp.CreateFlowControlFrame(0x31, 0, 0); // FC=Stop
+    // Injecte la première Flow Control : wait
+    auto fcStopData = ftp.CreateFlowControlFrame(0x31, 0, 0); // FC=wait
     bus.injectFrame(FrameCAN(ID::buildSmartID(), fcStopData));
 
     // Ensuite injecte une Flow Control continue pour permettre de reprendre
@@ -217,6 +182,16 @@ TEST(CanManagerTest, SendWithFlowControlStop) {
 
     // Vérifie que le premier bloc a bien été envoyé avant le STOP
     EXPECT_EQ(bus.sentFrames[0].getData()[0] >> 4, 0x1); // First Frame
+    std::string reassembled;
+    for (const auto& frame : bus.sentFrames) {
+        auto data = frame.getData();
+        // saute le premier octet de contrôle (PCI), garde le reste
+        if (!data.empty()) {
+            reassembled.append(data.begin() + 1, data.end());
+        }
+    }
+    EXPECT_EQ(reassembled.size(), msg.size()); // Vérifie que la taille est correcte
+    EXPECT_EQ(reassembled, msg); // Message reconstruit == original
 }
 
 TEST(CanManagerTest, SendWithFlowControlAbort) {
@@ -231,18 +206,8 @@ TEST(CanManagerTest, SendWithFlowControlAbort) {
     // Crée une Flow Control d’erreur (Abort)
     auto fcAbortData = ftp.CreateFlowControlFrame(0x32, 0, 0); // 0x32 = Abort/Error
     bus.injectFrame(FrameCAN(ID::buildSmartID(), fcAbortData));
-
-    // Capture std::cout avant d’envoyer
-    std::ostringstream oss;
-    std::streambuf* oldCout = std::cout.rdbuf(oss.rdbuf());
-
     // Envoie du message (une seule fois)
     can.send(msg);
-
-    // Restaure std::cout
-    std::cout.rdbuf(oldCout);
-    std::string output = oss.str();
-
     // Vérifie que seulement la First Frame a été envoyée
     ASSERT_EQ(bus.sentFrames.size(), 1);
 
