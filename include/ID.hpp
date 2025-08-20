@@ -33,6 +33,10 @@ public:
         return ID(rx, tx);
     }
 
+    ID::buildSmartID() {
+        return ID(getRx(),getTx()); // Exemple d'ID par défaut
+    }
+
     // Constructeur
     ID(uint16_t rx, uint16_t tx) : canIdRx_(rx), canIdTx_(tx) {}
 
