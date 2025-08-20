@@ -147,7 +147,7 @@ std::string CanManager::receive() {
     ID canId = ID::loadFromJson("../config.json");
     auto frame_id = canId.getRx(); 
     auto blockSize = loadBlockSize("../config.json");
-    auto separationTimeMs = loadSeparationTime("config.json");
+    auto separationTimeMs = loadSeparationTime("../config.json");
     FrameCanTP frameCanTP;
     std::vector<uint8_t> buffer;
     uint16_t expectedSize = 0;
