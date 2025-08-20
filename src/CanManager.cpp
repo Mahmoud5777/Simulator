@@ -11,7 +11,7 @@
 
 using json = nlohmann::json;
 
-uint8_t loadBlockSize(const std::string& jsonFile) {
+uint8_t CanManager::loadBlockSize(const std::string& jsonFile) {
     std::ifstream file(jsonFile);
     if (!file.is_open()) {
         throw std::runtime_error("Impossible d'ouvrir " + jsonFile);
@@ -28,7 +28,7 @@ uint8_t loadBlockSize(const std::string& jsonFile) {
 }
 
     // Méthode privée pour charger SeparationTime
-uint8_t loadSeparationTime(const std::string& jsonFile) {
+uint8_t CanManager::loadSeparationTime(const std::string& jsonFile) {
     std::ifstream file(jsonFile);
     if (!file.is_open()) {
         throw std::runtime_error("Impossible d'ouvrir " + jsonFile);
@@ -44,7 +44,7 @@ uint8_t loadSeparationTime(const std::string& jsonFile) {
     return static_cast<uint8_t>(config["SeparationTime"].get<int>());
 }
 
-std::vector<uint8_t> encoder(const std::string& data) {
+std::vector<uint8_t> CanManager::encoder(const std::string& data) {
     std::vector<uint8_t> encoded;
     for (char c : data) {
         encoded.push_back(static_cast<uint8_t>(c));
@@ -52,7 +52,7 @@ std::vector<uint8_t> encoder(const std::string& data) {
     return encoded;
 }
 
-std::string decoder(const std::string& hex) {
+std::string CanManager::decoder(const std::string& hex) {
     std::string result;
     for (size_t i = 0; i < hex.length(); i += 2) {
         std::string byteStr = hex.substr(i, 2);               // deux caractères hex
