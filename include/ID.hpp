@@ -33,7 +33,7 @@ public:
         return ID(rx, tx);
     }
 
-    ID::buildSmartID() {
+    buildSmartID() {
         return ID(getRx(),getTx()); // Exemple d'ID par défaut
     }
 
