@@ -52,13 +52,10 @@ std::vector<uint8_t> CanManager::encoder(const std::string& data) {
     return encoded;
 }
 
-std::string CanManager::decoder(const std::string& hex) {
+std::string CanManager::decoder(const std::vector<uint8_t>& data) {
     std::string result;
-    for (size_t i = 0; i < hex.length(); i += 2) {
-        std::string byteStr = hex.substr(i, 2);               // deux caractères hex
-        char byte = static_cast<char>(std::stoul(byteStr, nullptr, 16)); // convertir en char
-        result.push_back(byte);
-
+    for (uint8_t byte : data) {
+        result.push_back(static_cast<char>(byte)); // convertir chaque octet en char
     }
     return result;
 }
