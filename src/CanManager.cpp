@@ -223,7 +223,7 @@ std::string CanManager::receive() {
             if (blockSize != 0 && framesReceivedInBlock >= blockSize) {
                 framesReceivedInBlock = 0;
                 std::vector<uint8_t> fcData = frameCanTP.CreateFlowControlFrame(0x00, blockSize, separationTimeMs);
-                FrameCAN fcFrame(frame_id, fcData);
+                FrameCAN fcFrame(canId, fcData);
                 busManager.send(fcFrame);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(separationTimeMs));
