@@ -87,7 +87,7 @@ void CanManager::send(const std::string& frame) {
             std::cout << static_cast<int>(byte) << " ";
         }
         std::cout <<std::endl;
-        FrameCAN canFrame( frame_id, singleFrame);  // Mettre un ID CAN adapté
+        FrameCAN canFrame(canId, singleFrame);  // Mettre un ID CAN adapté
         busManager.send(canFrame);
     } else {
         std::vector<uint8_t> dataFirstFrame(encodedData.begin(), encodedData.begin() + 6);
@@ -99,7 +99,7 @@ void CanManager::send(const std::string& frame) {
             std::cout << static_cast<int>(byte) << " ";
         }
         std::cout <<std::endl;
-        FrameCAN canFrame(frame_id, firstFrame);
+        FrameCAN canFrame(canId, firstFrame);
         busManager.send(canFrame);
         while (!encodedData.empty()) {
             FrameCAN flowControlFrame = busManager.receive();
@@ -124,7 +124,7 @@ void CanManager::send(const std::string& frame) {
                         std::cout << static_cast<int>(byte) << " ";
                     }
                     std::cout<<std::endl;
-                    FrameCAN canFrame(frame_id, consecutiveFrame);
+                    FrameCAN canFrame(canId, consecutiveFrame);
                     busManager.send(canFrame);
                     encodedData.erase(encodedData.begin(), encodedData.begin() + sizeToSend);
                     std::this_thread::sleep_for(std::chrono::milliseconds(separationTime));
@@ -179,7 +179,7 @@ std::string CanManager::receive() {
             std::cout << static_cast<int>(byte) << " ";
         }
         std::cout <<std::endl;
-        FrameCAN flowControlFrame(frame_id, flowControlData);
+        FrameCAN flowControlFrame(canId, flowControlData);
         busManager.send(flowControlFrame);
         uint8_t framesReceivedInBlock = 0;
         int waitCount = 0;
@@ -196,7 +196,7 @@ std::string CanManager::receive() {
                         std::cout << static_cast<int>(byte) << " ";
                     }
                     std::cout <<std::endl;
-                    busManager.send(FrameCAN(frame_id, abortFrame));
+                    busManager.send(FrameCAN(canId, abortFrame));
                     break; // Sortir de la boucle si trop d'attentes
                 }
                 std::vector<uint8_t> waitFrame = frameCanTP.CreateFlowControlFrame(0x01, 0, separationTimeMs);
@@ -206,7 +206,7 @@ std::string CanManager::receive() {
                     std::cout << static_cast<int>(byte) << " ";
                 }
                 std::cout <<std::endl;
-                busManager.send(FrameCAN(frame_id, waitFrame));
+                busManager.send(FrameCAN(canId, waitFrame));
                 std::this_thread::sleep_for(std::chrono::milliseconds(separationTimeMs));
                 continue; // Retour au début de la boucle pour nouvelle réception
             }
