@@ -103,7 +103,7 @@ void CanManager::send(const std::string& frame) {
             FrameCAN flowControlFrame = busManager.receive();
             std::cout << "Received flow control frame : [" 
                       << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
-                      << flowControlFrame.getFrameID().getRx() << "] : ";
+                      << canId.getRx() << "] : ";
             auto flowControlData = flowControlFrame.getData();
             for (auto byte : flowControlData) {
                 std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
@@ -184,7 +184,7 @@ std::string CanManager::receive() {
 
         buffer = frameCanTP.GetDataFromFirstFrame(data);
 
-        std::vector<uint8_t> flowControlData = frameCanTP.CreateFlowControlFrame(0x00, 8, 10);
+        std::vector<uint8_t> flowControlData = frameCanTP.CreateFlowControlFrame(0x00, blockSize, separationTimeMs);
         std::cout << "Sending flow control frame  : [" 
                   << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id << "] : ";
         for (auto byte : flowControlData) {
