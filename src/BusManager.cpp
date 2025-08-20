@@ -102,8 +102,7 @@ void BusManager::send(const FrameCAN& trame) {
         return;
     }
     struct can_frame frame{};
-    uint32_t raw_id = trame.getFrameID().getID(); // Récupération de l'ID CAN
-    frame.can_id = trame.getFrameID().isExtended()? (raw_id | CAN_EFF_FLAG) : raw_id; 
+    frame.can_id = trame.getFrameID().getID().getTX();
     frame.can_dlc = trame.getData().size(); 
     std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {

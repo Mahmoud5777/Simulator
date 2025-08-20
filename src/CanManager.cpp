@@ -7,7 +7,7 @@
 #include "../include/ID.hpp"
 #include <sstream>
 #include <iomanip>
-#include "json.hpp"
+#include "../include/json.hpp"  // nlohmann/
 
 using json = nlohmann::json;
 
@@ -156,7 +156,7 @@ std::string CanManager::receive() {
     uint8_t frameType = data[0] & 0xF0;
     if (frameType == 0x00) { // Single Frame
         std::cout << "Received single frame       : [";
-        std::cout << receivedFrame.getFrameID.getTx()<< "] :";
+        std::cout << receivedFrame.getFrameID().getTx()<< "] :";
         for (auto byte : data) {
                 std::cout << static_cast<int>(byte) << " ";
         }
@@ -165,7 +165,7 @@ std::string CanManager::receive() {
     } else if (frameType == 0x10) { // First Frame
         expectedSize = ((data[0] & 0x0F) << 8) | data[1];
         std::cout << "Received first frame        : [";
-        std::cout << receivedFrame.getFrameID.getTx()<< "] :";
+        std::cout << receivedFrame.getFrameID().getTx()<< "] :";
         for (auto byte : data) {
                 std::cout << static_cast<int>(byte) << " ";
         }
