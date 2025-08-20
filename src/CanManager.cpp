@@ -58,9 +58,9 @@ void CanManager::send(const std::string& frame) {
     auto frame_id = canId.getTx(); 
     std::vector<uint8_t> encodedData = encoder(frame);
 
-    std::cout << "Data to send :  ";
+    std::cout << "Data to send : ";
     for (auto byte : encodedData) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') 
+        std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                   << static_cast<int>(byte) << " ";
     }
     std::cout << std::dec << std::endl;
@@ -73,12 +73,12 @@ void CanManager::send(const std::string& frame) {
 
     FrameCanTP frameCanTP;
     if (dataSize <= 7) {
-        std::cout << "Sending single frame  : ["
-                  << std::hex << std::setw(2) << std::setfill('0') << frame_id
-                  << "] :";
+        std::cout << "Sending single frame  : [" 
+                  << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id 
+                  << "] : ";
         auto singleFrame = frameCanTP.CreateSingleFrame(encodedData, dataSize);
         for (auto byte : singleFrame) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') 
+            std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                       << static_cast<int>(byte) << " ";
         }
         std::cout << std::dec << std::endl;
@@ -86,13 +86,13 @@ void CanManager::send(const std::string& frame) {
         busManager.send(canFrame);
     } else {
         std::vector<uint8_t> dataFirstFrame(encodedData.begin(), encodedData.begin() + 6);
-        std::cout << "Sending first frame         : ["
-                  << std::hex << std::setw(2) << std::setfill('0') << frame_id
-                  << "] :";
+        std::cout << "Sending first frame         : [" 
+                  << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id 
+                  << "] : ";
         encodedData.erase(encodedData.begin(), encodedData.begin() + 6);
         auto firstFrame = frameCanTP.CreateFirstFrame(dataFirstFrame, dataSize);
         for (auto byte : firstFrame) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') 
+            std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                       << static_cast<int>(byte) << " ";
         }
         std::cout << std::dec << std::endl;
@@ -101,12 +101,12 @@ void CanManager::send(const std::string& frame) {
 
         while (!encodedData.empty()) {
             FrameCAN flowControlFrame = busManager.receive();
-            std::cout << "Received flow control frame : ["
-                      << std::hex << std::setw(2) << std::setfill('0') 
-                      << flowControlFrame.getFrameID().getRx() << "] :";
+            std::cout << "Received flow control frame : [" 
+                      << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
+                      << flowControlFrame.getFrameID().getRx() << "] : ";
             auto flowControlData = flowControlFrame.getData();
             for (auto byte : flowControlData) {
-                std::cout << std::hex << std::setw(2) << std::setfill('0') 
+                std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                           << static_cast<int>(byte) << " ";
             }
             std::cout << std::dec << std::endl;
@@ -115,16 +115,16 @@ void CanManager::send(const std::string& frame) {
             uint8_t blockSize = flowControlData[1];
             uint8_t separationTime = flowControlData[2];
 
-            if (flowStatus == 0x00) { // Continue sending
+            if (flowStatus == 0x00) {
                 for (uint8_t i = 0; i < blockSize && !encodedData.empty(); ++i) {
                     size_t sizeToSend = std::min<size_t>(7, encodedData.size());
                     std::vector<uint8_t> consecutiveData(encodedData.begin(), encodedData.begin() + sizeToSend);
-                    std::cout << "Sending consecutive frame   : ["
-                              << std::hex << std::setw(2) << std::setfill('0') << frame_id
-                              << "] :";
+                    std::cout << "Sending consecutive frame   : [" 
+                              << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id 
+                              << "] : ";
                     auto consecutiveFrame = frameCanTP.CreateConsecutiveFrame(consecutiveData, i + 1);
                     for (auto byte : consecutiveFrame) {
-                        std::cout << std::hex << std::setw(2) << std::setfill('0') 
+                        std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                                   << static_cast<int>(byte) << " ";
                     }
                     std::cout << std::dec << std::endl;
@@ -133,9 +133,9 @@ void CanManager::send(const std::string& frame) {
                     encodedData.erase(encodedData.begin(), encodedData.begin() + sizeToSend);
                     std::this_thread::sleep_for(std::chrono::milliseconds(separationTime));
                 }
-            } else if (flowStatus == 0x01) { // Wait
+            } else if (flowStatus == 0x01) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(separationTime));
-            } else { // Abort
+            } else {
                 std::cout << "Transmission aborted !!" << std::endl;
                 break;
             } 
@@ -161,23 +161,23 @@ std::string CanManager::receive() {
     std::vector<uint8_t> data = receivedFrame.getData();
     uint8_t frameType = data[0] & 0xF0;
 
-    if (frameType == 0x00) { // Single Frame
-        std::cout << "Received single frame  : ["
-                  << std::hex << std::setw(2) << std::setfill('0') 
-                  << receivedFrame.getFrameID().getTx() << "] :";
+    if (frameType == 0x00) {
+        std::cout << "Received single frame  : [" 
+                  << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
+                  << receivedFrame.getFrameID().getTx() << "] : ";
         for (auto byte : data) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') 
+            std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                       << static_cast<int>(byte) << " ";
         }
         std::cout << std::dec << std::endl;
         buffer = frameCanTP.GetDataFromSingleFrame(data);
-    } else if (frameType == 0x10) { // First Frame
+    } else if (frameType == 0x10) {
         expectedSize = ((data[0] & 0x0F) << 8) | data[1];
-        std::cout << "Received first frame        : ["
-                  << std::hex << std::setw(2) << std::setfill('0') 
-                  << receivedFrame.getFrameID().getTx() << "] :";
+        std::cout << "Received first frame        : [" 
+                  << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
+                  << receivedFrame.getFrameID().getTx() << "] : ";
         for (auto byte : data) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') 
+            std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                       << static_cast<int>(byte) << " ";
         }
         std::cout << std::dec << std::endl;
@@ -185,10 +185,10 @@ std::string CanManager::receive() {
         buffer = frameCanTP.GetDataFromFirstFrame(data);
 
         std::vector<uint8_t> flowControlData = frameCanTP.CreateFlowControlFrame(0x00, 8, 10);
-        std::cout << "Sending flow control frame  : ["
-                  << std::hex << std::setw(2) << std::setfill('0') << frame_id << "] :";
+        std::cout << "Sending flow control frame  : [" 
+                  << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id << "] : ";
         for (auto byte : flowControlData) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') 
+            std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                       << static_cast<int>(byte) << " ";
         }
         std::cout << std::dec << std::endl;
@@ -207,10 +207,10 @@ std::string CanManager::receive() {
             if (data.empty()) {
                 if (++waitCount > MAX_WAIT_RETRIES) {
                     std::vector<uint8_t> abortFrame = frameCanTP.CreateFlowControlFrame(0x02, 0, 0);
-                    std::cout << "Sending flow control frame  : ["
-                              << std::hex << std::setw(2) << std::setfill('0') << frame_id << "] :";
+                    std::cout << "Sending flow control frame  : [" 
+                              << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id << "] : ";
                     for (auto byte : abortFrame) {
-                        std::cout << std::hex << std::setw(2) << std::setfill('0') 
+                        std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                                   << static_cast<int>(byte) << " ";
                     }
                     std::cout << std::dec << std::endl;
@@ -218,10 +218,10 @@ std::string CanManager::receive() {
                     break;
                 }
                 std::vector<uint8_t> waitFrame = frameCanTP.CreateFlowControlFrame(0x01, 0, separationTimeMs);
-                std::cout << "Sending flow control frame  : ["
-                          << std::hex << std::setw(2) << std::setfill('0') << frame_id << "] :";
+                std::cout << "Sending flow control frame  : [" 
+                          << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id << "] : ";
                 for (auto byte : waitFrame) {
-                    std::cout << std::hex << std::setw(2) << std::setfill('0') 
+                    std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                               << static_cast<int>(byte) << " ";
                 }
                 std::cout << std::dec << std::endl;
@@ -230,11 +230,11 @@ std::string CanManager::receive() {
                 continue;
             }
 
-            std::cout << "Received consecutive frame  : ["
-                      << std::hex << std::setw(2) << std::setfill('0') 
-                      << receivedFrame.getFrameID().getTx() << "] :";
+            std::cout << "Received consecutive frame  : [" 
+                      << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
+                      << receivedFrame.getFrameID().getTx() << "] : ";
             for (auto byte : data) {
-                std::cout << std::hex << std::setw(2) << std::setfill('0') 
+                std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                           << static_cast<int>(byte) << " ";
             }
             std::cout << std::dec << std::endl;
@@ -258,7 +258,7 @@ std::string CanManager::receive() {
         }
     } else {
         std::cerr << "Unsupported or unexpected frame type: 0x" 
-                  << std::hex << std::setw(2) << std::setfill('0') 
+                  << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                   << (int)frameType << std::dec << std::endl;
     }
 
@@ -267,9 +267,9 @@ std::string CanManager::receive() {
         return "";
     }
 
-    std::cout << "Data received : " ;
+    std::cout << "Data received : ";
     for (auto byte : buffer) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') 
+        std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
                   << static_cast<int>(byte) << " ";
     }
     std::cout << std::dec << std::endl;
