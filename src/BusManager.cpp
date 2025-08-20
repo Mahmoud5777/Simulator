@@ -101,10 +101,13 @@ void BusManager::send(const FrameCAN& trame) {
         std::cerr << "CAN socket not initialized !\n";
         return;
     }
+
     struct can_frame frame{};
-    frame.can_id = trame.getFrameID().getID().getTX();
-    frame.can_dlc = trame.getData().size(); 
+    // Utiliser getTx() directement
+    frame.can_id = trame.getFrameID().getTx();
+    frame.can_dlc = trame.getData().size();
     std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
+
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
         perror("CAN sending error !");
     }
@@ -115,24 +118,35 @@ FrameCAN BusManager::receive() {
 #ifdef __linux__
     if (socket_fd < 0) {
         std::cerr << "CAN socket not initialized for reception !\n";
-        return FrameCAN(); 
+        // Créer un ID factice si nécessaire
+        ID dummyID(0x700, 0x700);  
+        return FrameCAN(dummyID, std::vector<uint8_t>{});
     }
+
     struct can_frame canFrame{};
     ssize_t nbytes = read(socket_fd, &canFrame, sizeof(canFrame));
     if (nbytes < 0) {
         perror("CAN reading error");
-        return FrameCAN();
+        ID dummyID(0x700, 0x700);  
+        return FrameCAN(dummyID, std::vector<uint8_t>{});
     }
     if (nbytes < sizeof(canFrame)) {
         std::cerr << "Incomplete CAN frame received\n";
-        return FrameCAN();
+        ID dummyID(0x700, 0x700);  
+        return FrameCAN(dummyID, std::vector<uint8_t>{});
     }
-    return FrameCAN(ID(canFrame.can_id & CAN_EFF_FLAG ? (canFrame.can_id & CAN_EFF_MASK) : canFrame.can_id),std::vector<uint8_t>(canFrame.data, canFrame.data + canFrame.can_dlc));
+
+    // Construire l'ID reçu
+    uint16_t can_id = canFrame.can_id & CAN_EFF_FLAG ? (canFrame.can_id & CAN_EFF_MASK) : canFrame.can_id;
+    ID frameID(can_id, can_id); // Rx et Tx identiques pour ton cas
+    return FrameCAN(frameID, std::vector<uint8_t>(canFrame.data, canFrame.data + canFrame.can_dlc));
 #else
     std::cerr << "CAN reception not supported on this platform\n";
-    return FrameCAN();
+    ID dummyID(0x700, 0x700);  
+    return FrameCAN(dummyID, std::vector<uint8_t>{});
 #endif
 }
+
 
 void BusManager::closeSocket() {
 #ifdef __linux__
