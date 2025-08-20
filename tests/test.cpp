@@ -20,7 +20,7 @@ public:
 
     FrameCAN receive() override {
         if (framesToReceive.empty()) {
-            return FrameCAN(ID::buildSmartID(), {}); // Retourne une frame vide
+            return FrameCAN(buildSmartID(), {}); // Retourne une frame vide
         }
         
         FrameCAN frame = framesToReceive.front();
@@ -89,7 +89,7 @@ TEST(CanManagerTest, SendMultiFrame) {
     // Injecte un Flow Control manuel
     FrameCanTP ftp;
     auto fcData = ftp.CreateFlowControlFrame(0x00, bus.blockSize, bus.separationTime);
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcData));
+    bus.injectFrame(FrameCAN(buildSmartID(), fcData));
     
     can.send(msg);
     
@@ -116,7 +116,7 @@ TEST(CanManagerTest, ReceiveSingleFrame) {
     auto sfData = ftp.CreateSingleFrame(std::vector<uint8_t>(msg.begin(), msg.end()), msg.size());
     
     // Injecte la frame
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), sfData));
+    bus.injectFrame(FrameCAN(buildSmartID(), sfData));
     
     std::string received = can.receive();
     EXPECT_EQ(received, msg);
@@ -137,7 +137,7 @@ TEST(CanManagerTest, ReceiveMultiFrame) {
         std::vector<uint8_t>(msg.begin(), msg.begin()+6),
         msg.size()
     );
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), ffData));
+    bus.injectFrame(FrameCAN(buildSmartID(), ffData));
 
     // Les Consecutive Frames seront injectées par le fake après chaque Flow Control
     size_t offset = 6;
@@ -148,7 +148,7 @@ TEST(CanManagerTest, ReceiveMultiFrame) {
             std::vector<uint8_t>(msg.begin()+offset, msg.begin()+offset+chunkSize),
             seqNum++
         );
-        bus.injectFrame(FrameCAN(ID::buildSmartID(), cfData));
+        bus.injectFrame(FrameCAN(buildSmartID(), cfData));
         offset += chunkSize;
     }
 
@@ -169,11 +169,11 @@ TEST(CanManagerTest, SendWithFlowControlwait) {
 
     // Injecte la première Flow Control : wait
     auto fcStopData = ftp.CreateFlowControlFrame(0x31, 0, 0); // FC=wait
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcStopData));
+    bus.injectFrame(FrameCAN(buildSmartID(), fcStopData));
 
     // Ensuite injecte une Flow Control continue pour permettre de reprendre
     auto fcContinueData = ftp.CreateFlowControlFrame(0x30, 8, 0);
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcContinueData));
+    bus.injectFrame(FrameCAN(buildSmartID(), fcContinueData));
 
     // Envoi du message
     can.send(msg);
@@ -213,7 +213,7 @@ TEST(CanManagerTest, SendWithFlowControlAbort) {
 
     // Crée une Flow Control d’erreur (Abort)
     auto fcAbortData = ftp.CreateFlowControlFrame(0x32, 0, 0); // 0x32 = Abort/Error
-    bus.injectFrame(FrameCAN(ID::buildSmartID(), fcAbortData));
+    bus.injectFrame(FrameCAN(buildSmartID(), fcAbortData));
     // Envoie du message (une seule fois)
     can.send(msg);
     std::string output = silence.getOutput();

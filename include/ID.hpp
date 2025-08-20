@@ -33,7 +33,7 @@ public:
         return ID(rx, tx);
     }
 
-    buildSmartID() {
+    ID buildSmartID() {
         // Crée un ID standard pour les tests
         return ID(0x700, 0x700);
     }
