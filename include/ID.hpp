@@ -34,7 +34,8 @@ public:
     }
 
     buildSmartID() {
-        return ID(getRx(),getTx()); // Exemple d'ID par défaut
+        // Crée un ID standard pour les tests
+        return ID(0x700, 0x700);
     }
 
     // Constructeur
