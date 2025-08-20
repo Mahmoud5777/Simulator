@@ -14,6 +14,8 @@
         BusManager& busManager; 
         std::vector<uint8_t> encoder(const std::string & data);
         std::string decoder(const std::vector<uint8_t> & data);
+        uint8_t loadBlockSize(const std::string &jsonFile);
+        uint8_t loadSeparationTime(const std::string &jsonFile);
     };
 
 #endif

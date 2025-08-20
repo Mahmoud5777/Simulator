@@ -108,8 +108,6 @@ void BusManager::send(const FrameCAN& trame) {
     std::memcpy(frame.data, trame.getData().data(), frame.can_dlc);
     if (write(socket_fd, &frame, sizeof(frame)) != sizeof(frame)) {
         perror("CAN sending error !");
-    }else{
-        std::cout << "CAN frame sent (ID: 0x" << std::hex << frame.can_id << std::dec << ", " << (int)frame.can_dlc << " octets)\n";
     }
 #endif
 }

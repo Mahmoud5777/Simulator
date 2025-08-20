@@ -1,0 +1,6 @@
+{
+  "BlockSize": 8,
+  "SeparationTime": 20,
+  "CanIdTx": "0x7E8",
+  "CanIdRx": "0x7E0"
+}
