@@ -247,6 +247,13 @@ std::string CanManager::receive() {
             if (blockSize != 0 && framesReceivedInBlock >= blockSize) {
                 framesReceivedInBlock = 0;
                 std::vector<uint8_t> fcData = frameCanTP.CreateFlowControlFrame(0x00, blockSize, separationTimeMs);
+                std::cout << "Sending flow control frame  : [" 
+                          << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << frame_id << "] : ";
+                for (auto byte : fcData) {
+                    std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
+                              << static_cast<int>(byte) << " ";
+                }
+                std::cout << std::dec << std::endl;
                 FrameCAN fcFrame(canId, fcData);
                 busManager.send(fcFrame);
             }
