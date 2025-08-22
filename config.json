@@ -1,5 +1,5 @@
 {
-  "BlockSize": 8,
+  "BlockSize": 3,
   "SeparationTime": 20,
   "CanIdTx": "0x7E8",
   "CanIdRx": "0x7E0"
